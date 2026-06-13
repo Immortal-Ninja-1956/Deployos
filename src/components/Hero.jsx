@@ -84,11 +84,11 @@ export default function Hero({ asteroids, loading, isDemoData, isArcadeTheme }) 
               NEAREST VECTOR ALERT
             </span>
             <span
-              className="font-display text-[9px] px-2 py-0.5 border"
+              className="font-display text-[9px] px-2 py-0.5 border uppercase"
               style={{
-                color: RISK_META[nearest.riskLevel].color,
-                borderColor: `${RISK_META[nearest.riskLevel].color}80`,
-                boxShadow: isArcadeTheme ? `0 0 5px ${RISK_META[nearest.riskLevel].color}` : 'none'
+                color: `var(--color-${nearest.riskLevel})`,
+                borderColor: `var(--color-${nearest.riskLevel})`,
+                boxShadow: isArcadeTheme ? `0 0 5px var(--color-${nearest.riskLevel})` : 'none'
               }}
             >
               {RISK_META[nearest.riskLevel].label}

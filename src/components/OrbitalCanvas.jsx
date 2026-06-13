@@ -38,14 +38,27 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const focusedIndexRef = useRef(-1);
   const hoveredIndexRef = useRef(-1);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     focusedIndexRef.current = focusedIndex;
   }, [focusedIndex]);
 
+  // Performance: Pause animation loop when canvas is off-screen
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, { threshold: 0.05 });
+
+    if (canvasRef.current) {
+      observer.observe(canvasRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isVisible) return;
     const ctx = canvas.getContext('2d');
 
     let raf;
@@ -94,17 +107,29 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
         ctx.stroke();
       }
 
-      // Concentric reference rings
-      ctx.globalAlpha = 0.08;
-      ctx.strokeStyle = cEdge;
-      ctx.setLineDash([3, 5]);
-      ctx.lineWidth = 1;
-      [0.35, 0.65, 0.95].forEach((f) => {
+      // Concentric reference rings and scale labels
+      [
+        { f: 0.35, label: '1.2 LD' },
+        { f: 0.65, label: '8.2 LD' },
+        { f: 0.95, label: '38 LD' }
+      ].forEach(({ f, label }) => {
+        // Draw the ring
+        ctx.globalAlpha = 0.08;
+        ctx.strokeStyle = cEdge;
+        ctx.setLineDash([3, 5]);
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(CENTER, CENTER, MAX_RADIUS * f, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw the label
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = cEdge;
+        ctx.font = isArcadeTheme ? '13px "VT323", monospace' : '9px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, CENTER, CENTER - (MAX_RADIUS * f) + 12);
       });
-      ctx.setLineDash([]); // Reset line dash
 
       // Draw Earth as a vector core with crosshairs
       ctx.globalAlpha = 0.4;
@@ -224,7 +249,7 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
 
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [asteroids, isArcadeTheme]);
+  }, [asteroids, isArcadeTheme, isVisible]);
 
   function handleMouseMove(event) {
     const canvas = canvasRef.current;
@@ -258,6 +283,24 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
     if (hit) onSelect(hit.asteroid);
   }
 
+  // Mobile Touch Control Selection
+  function handleTouchStart(event) {
+    const canvas = canvasRef.current;
+    if (!canvas || event.touches.length === 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = event.touches[0];
+    const x = ((touch.clientX - rect.left) / rect.width) * SIZE;
+    const y = ((touch.clientY - rect.top) / rect.height) * SIZE;
+
+    const hit = dotsRef.current.find(
+      (d) => Math.hypot(d.x - x, d.y - y) <= d.hitRadius
+    );
+    if (hit) {
+      event.preventDefault();
+      onSelect(hit.asteroid);
+    }
+  }
+
   function handleKeyDown(e) {
     if (!asteroids.length) return;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -285,6 +328,15 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
         <p className="font-mono text-sm text-dim">CLICK SENSOR NODE FOR TELEMETRY</p>
       </div>
 
+      {/* Screen reader announcements for keyboard/focus navigation */}
+      <div className="sr-only" aria-live="polite">
+        {focusedIndex >= 0 && asteroids[focusedIndex] ? (
+          `Radar locked on asteroid ${asteroids[focusedIndex].name}. Miss distance: ${asteroids[focusedIndex].missDistanceLD.toFixed(1)} lunar distances. Risk classification: ${asteroids[focusedIndex].riskLevel}.`
+        ) : (
+          'No asteroid selected.'
+        )}
+      </div>
+
       <div className="arcade-panel p-2 sm:p-4 flex justify-center bg-void">
         <canvas
           ref={canvasRef}
@@ -293,6 +345,7 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
           onClick={handleClick}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           tabIndex={0}

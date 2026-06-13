@@ -23,6 +23,10 @@ ${JSON.stringify(asteroid)}`;
 }
 
 export default async function handler(req, res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
@@ -35,19 +39,53 @@ export default async function handler(req, res) {
     return res.status(200).json({ report: null, note: 'GEMINI_API_KEY not configured' });
   }
 
-  let asteroid = req.body;
+  let rawAsteroid = req.body;
+  let rawLatitude = undefined;
+  let rawLongitude = undefined;
+
+  if (req.body && req.body.asteroid) {
+    rawAsteroid = req.body.asteroid;
+    rawLatitude = req.body.latitude;
+    rawLongitude = req.body.longitude;
+  }
+
+  if (!rawAsteroid || !rawAsteroid.name) {
+    return res.status(400).json({ error: 'Missing asteroid payload' });
+  }
+
+  // Sanitize coordinates and prevent injection
   let latitude = undefined;
   let longitude = undefined;
 
-  if (req.body && req.body.asteroid) {
-    asteroid = req.body.asteroid;
-    latitude = req.body.latitude;
-    longitude = req.body.longitude;
+  if (rawLatitude !== undefined && rawLatitude !== null) {
+    const lat = parseFloat(rawLatitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      return res.status(400).json({ error: 'Invalid latitude parameter. Must be a number between -90 and 90.' });
+    }
+    latitude = lat;
   }
 
-  if (!asteroid || !asteroid.name) {
-    return res.status(400).json({ error: 'Missing asteroid payload' });
+  if (rawLongitude !== undefined && rawLongitude !== null) {
+    const lng = parseFloat(rawLongitude);
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ error: 'Invalid longitude parameter. Must be a number between -180 and 180.' });
+    }
+    longitude = lng;
   }
+
+  // Whitelist and sanitize asteroid fields to prevent prompt injection via raw object values
+  const asteroid = {
+    name: String(rawAsteroid.name).replace(/[^\w\s\-\(\)]/gi, '').slice(0, 50),
+    isHazardous: Boolean(rawAsteroid.isHazardous),
+    diameterMeters: {
+      min: Number(rawAsteroid.diameterMeters?.min || 0),
+      max: Number(rawAsteroid.diameterMeters?.max || 0),
+    },
+    missDistanceLD: Number(rawAsteroid.missDistanceLD || 0),
+    missDistanceKm: Number(rawAsteroid.missDistanceKm || 0),
+    velocityKmS: Number(rawAsteroid.velocityKmS || 0),
+    approachEpoch: Number(rawAsteroid.approachEpoch || 0),
+  };
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 

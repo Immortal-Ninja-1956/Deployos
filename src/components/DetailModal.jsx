@@ -25,7 +25,10 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   const [reportState, setReportState] = useState('loading');
   const [coords, setCoords] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const controllerRef = useRef(null);
+  const modalRef = useRef(null);
+  const previousActiveElementRef = useRef(null);
 
   const fetchReport = (userCoords = null) => {
     const requestId = asteroid.id;
@@ -92,6 +95,29 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
       });
   };
 
+  // Accessibility: Focus trap init and restore focus on close
+  useEffect(() => {
+    previousActiveElementRef.current = document.activeElement;
+    if (modalRef.current) {
+      const closeBtn = modalRef.current.querySelector('button[aria-label="Close details"]');
+      if (closeBtn) {
+        closeBtn.focus();
+      } else {
+        const focusable = modalRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) {
+          focusable[0].focus();
+        }
+      }
+    }
+    return () => {
+      if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+        previousActiveElementRef.current.focus();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     setCoords(null);
     fetchReport(null);
@@ -125,6 +151,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     );
   }
 
+  // Keyboard navigation & Focus Trapping inside modal
   useEffect(() => {
     function onKey(e) {
       if (e.key === 'Escape') {
@@ -132,10 +159,51 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
       } else if ((e.key === 'r' || e.key === 'R') && reportState === 'unavailable') {
         fetchReport(coords);
       }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = Array.from(
+          modalRef.current.querySelectorAll(
+            'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+          )
+        );
+        if (focusableElements.length === 0) return;
+
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            last.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === last) {
+            first.focus();
+            e.preventDefault();
+          }
+        }
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, reportState, coords]);
+
+  // Copy telemetry helper
+  function handleCopyTelemetry() {
+    const text = `NearMiss Telemetry Alert:
+Object: ${asteroid.name}
+Max Estimated Diameter: ${Math.round(asteroid.diameterMeters.max)} meters (${asteroid.sizeRef.label})
+Velocity: ${asteroid.velocityKmS.toFixed(2)} km/s
+Miss Distance: ${asteroid.missDistanceLD.toFixed(2)} LD (${Math.round(asteroid.missDistanceKm).toLocaleString()} km)
+Closest Contact: ${new Date(asteroid.approachEpoch).toLocaleString()}
+${report ? `AI Diagnostic: ${report}` : ''}
+Data sourced from NASA JPL.`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const meta = RISK_META[asteroid.riskLevel];
   const approachDate = new Date(asteroid.approachEpoch);
@@ -155,8 +223,10 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
       aria-label={`Details for asteroid ${asteroid.name}`}
     >
       <div
+        ref={modalRef}
         className={`w-full sm:max-w-lg max-h-[85vh] overflow-y-auto p-5 sm:p-6 animate-fade-in ${panelClass}`}
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
       >
         <div className="flex items-start justify-between mb-4 border-b border-edge/30 pb-3">
           <div>
@@ -284,8 +354,15 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
           )}
         </div>
 
-        {asteroid.jplUrl && asteroid.jplUrl !== '#' && (
-          <div className="mt-5 text-right">
+        <div className="mt-5 flex justify-between items-center gap-4">
+          <button
+            onClick={handleCopyTelemetry}
+            className="bg-void border border-edge hover:border-signal text-edge hover:text-signal px-3 py-1 font-display text-[9px] cursor-pointer select-none transition-colors"
+          >
+            {copied ? '[ TELEMETRY COPIED ]' : (isArcadeTheme ? '[ SHARE TELEMETRY ]' : 'SHARE TELEMETRY')}
+          </button>
+          
+          {asteroid.jplUrl && asteroid.jplUrl !== '#' && (
             <a
               href={asteroid.jplUrl}
               target="_blank"
@@ -294,8 +371,8 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
             >
               LAUNCH JPL DIAGNOSTICS &rarr;
             </a>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

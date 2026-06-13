@@ -16,6 +16,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterRisk, setFilterRisk] = useState('all');
   const [sortMetric, setSortMetric] = useState('distance');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { asteroids, loading, isDemoData, toastMessage, clearToast } = useAsteroidFeed(selectedDate);
   const [selected, setSelected] = useState(null);
@@ -27,6 +28,12 @@ export default function App() {
       result = result.filter((a) => a.riskLevel === filterRisk);
     }
 
+    if (searchQuery.trim() !== '') {
+      result = result.filter((a) =>
+        a.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+      );
+    }
+
     result.sort((a, b) => {
       if (sortMetric === 'distance') return a.missDistanceLD - b.missDistanceLD;
       if (sortMetric === 'size') return b.diameterMeters.max - a.diameterMeters.max;
@@ -35,7 +42,7 @@ export default function App() {
     });
 
     return result;
-  }, [asteroids, filterRisk, sortMetric]);
+  }, [asteroids, filterRisk, sortMetric, searchQuery]);
 
   return (
     <div className={`min-h-screen bg-void text-ink font-body transition-colors duration-300 ${isArcadeTheme ? 'theme-arcade' : ''}`}>
@@ -53,6 +60,8 @@ export default function App() {
           onFilterChange={setFilterRisk}
           sortMetric={sortMetric}
           onSortChange={setSortMetric}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
         <Hero asteroids={displayedAsteroids} loading={loading} isDemoData={isDemoData} isArcadeTheme={isArcadeTheme} />
         <OrbitalCanvas asteroids={displayedAsteroids} onSelect={setSelected} isArcadeTheme={isArcadeTheme} />
