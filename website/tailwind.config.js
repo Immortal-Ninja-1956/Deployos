@@ -4,23 +4,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        void: '#05050A',       // Arcade screen pitch black/purple
-        panel: '#0C0C16',      // Dark arcade card panel
-        panel2: '#121222',     // Diagnostic panel
-        edge: '#00F0FF',       // Neon cyan wireframe
-        ink: '#E0E8FF',        // Bright light cyan-white text
-        dim: '#587098',        // Dimmed phosphor green/blue
-        signal: '#FF007F',     // Hot neon arcade pink
-        hazardous: '#FF0055',  // Bright arcade hazard red
-        watch: '#FF8800',      // Hot orange warning
-        notable: '#FFD700',    // Glowing gold
-        routine: '#00FF99',    // Vector neon green
+        void: 'var(--color-void)',
+        panel: 'var(--color-panel)',
+        panel2: 'var(--color-panel2)',
+        edge: 'var(--color-edge)',
+        ink: 'var(--color-ink)',
+        dim: 'var(--color-dim)',
+        signal: 'var(--color-signal)',
+        hazardous: 'var(--color-hazardous)',
+        watch: 'var(--color-watch)',
+        notable: 'var(--color-notable)',
+        routine: 'var(--color-routine)',
       },
       fontFamily: {
-        display: ['"Press Start 2P"', 'cursive'],
-        arcade: ['"Orbitron"', 'sans-serif'],
-        body: ['"VT323"', 'monospace'],
-        mono: ['"VT323"', 'monospace'],
+        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        arcade: ['var(--font-arcade)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-body)', 'monospace', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
+      },
+      boxShadow: {
+        'glow-cyan': '0 0 15px var(--color-edge)',
+        'glow-hazardous': '0 0 15px var(--color-hazardous)',
+        'glow-watch': '0 0 15px var(--color-watch)',
+        'glow-notable': '0 0 15px var(--color-notable)',
+        'glow-cyan-lg': '0 0 25px var(--color-edge)',
+        'glow-hazardous-lg': '0 0 25px var(--color-hazardous)',
+        'glow-watch-lg': '0 0 25px var(--color-watch)',
+        'glow-notable-lg': '0 0 25px var(--color-notable)',
       },
       keyframes: {
         'fade-in': {

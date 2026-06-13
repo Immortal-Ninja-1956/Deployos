@@ -1,9 +1,11 @@
 import AsteroidCard from './AsteroidCard';
 
-export default function AsteroidList({ asteroids, onSelect, loading }) {
+export default function AsteroidList({ asteroids, onSelect, loading, isArcadeTheme }) {
   return (
     <section className="my-10 select-none">
-      <h2 className="font-display text-xs text-cyan-400 glow-cyan mb-4 border-b-2 border-edge/30 pb-2">[ TARGET READOUT INDEX ]</h2>
+      <h2 className="font-display text-xs text-cyan-400 glow-cyan mb-4 border-b-2 border-edge/30 pb-2">
+        {isArcadeTheme ? '[ TARGET READOUT INDEX ]' : 'TARGET READOUT INDEX'}
+      </h2>
 
       {loading ? (
         <div className="space-y-4" aria-label="Loading asteroid data">
@@ -14,7 +16,7 @@ export default function AsteroidList({ asteroids, onSelect, loading }) {
       ) : (
         <div className="grid gap-4">
           {asteroids.map((a) => (
-            <AsteroidCard key={a.id} asteroid={a} onSelect={onSelect} />
+            <AsteroidCard key={a.id} asteroid={a} onSelect={onSelect} isArcadeTheme={isArcadeTheme} />
           ))}
         </div>
       )}

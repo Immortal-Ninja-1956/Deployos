@@ -2,15 +2,25 @@ import { RISK_META } from '../utils/risk';
 import { timeLabel } from '../utils/liveDistance';
 import { useLiveTime } from '../hooks/useLiveTime';
 
-export default function AsteroidCard({ asteroid, onSelect }) {
+const badgeColors = {
+  hazardous: 'bg-hazardous/20 border-hazardous text-hazardous shadow-glow-hazardous',
+  watch: 'bg-watch/20 border-watch text-watch shadow-glow-watch',
+  notable: 'bg-notable/20 border-notable text-notable shadow-glow-notable',
+  routine: 'bg-routine/20 border-routine text-routine shadow-glow-routine',
+};
+
+const panelGlow = {
+  hazardous: 'arcade-panel-hazardous hover:shadow-glow-hazardous-lg',
+  watch: 'arcade-panel-watch hover:shadow-glow-watch-lg',
+  notable: 'arcade-panel-notable hover:shadow-glow-notable-lg',
+  routine: 'arcade-panel hover:shadow-glow-cyan-lg',
+};
+
+export default function AsteroidCard({ asteroid, onSelect, isArcadeTheme }) {
   const now = useLiveTime(60000);
   const meta = RISK_META[asteroid.riskLevel];
-
-  const panelClass = 
-    asteroid.riskLevel === 'hazardous' ? 'arcade-panel-hazardous hover:shadow-[0_0_15px_#FF0055]' :
-    asteroid.riskLevel === 'watch' ? 'arcade-panel-watch hover:shadow-[0_0_15px_#FF8800]' :
-    asteroid.riskLevel === 'notable' ? 'arcade-panel-notable hover:shadow-[0_0_15px_#FFD700]' :
-    'arcade-panel hover:shadow-[0_0_15px_#00F0FF]';
+  const badgeClass = badgeColors[asteroid.riskLevel];
+  const panelClass = panelGlow[asteroid.riskLevel] || panelGlow.routine;
 
   return (
     <button
@@ -19,12 +29,7 @@ export default function AsteroidCard({ asteroid, onSelect }) {
     >
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <span
-          className="shrink-0 w-3 h-3 border"
-          style={{ 
-            background: `${meta.color}30`, 
-            borderColor: meta.color, 
-            boxShadow: `0 0 6px ${meta.color}` 
-          }}
+          className={`shrink-0 w-3 h-3 border ${badgeClass}`}
           aria-hidden="true"
         />
         <div className="min-w-0">
@@ -38,26 +43,16 @@ export default function AsteroidCard({ asteroid, onSelect }) {
 
       <div className="flex items-center gap-3 shrink-0 select-none">
         <span
-          className="font-display text-[9px] px-2 py-0.5 border hidden sm:inline-block"
-          style={{ 
-            color: meta.color, 
-            borderColor: `${meta.color}80`, 
-            boxShadow: `0 0 5px ${meta.color}` 
-          }}
+          className={`font-display text-[9px] px-2 py-0.5 border hidden sm:inline-block ${badgeClass}`}
         >
           {meta.label.toUpperCase()}
         </span>
         <span
-          className="w-3 h-3 border sm:hidden"
-          style={{ 
-            background: `${meta.color}30`, 
-            borderColor: meta.color, 
-            boxShadow: `0 0 6px ${meta.color}` 
-          }}
+          className={`w-3 h-3 border sm:hidden ${badgeClass}`}
           aria-hidden="true"
         />
-        <span className="text-cyan-400 group-hover:text-signal transition-colors font-display text-[10px] tracking-wide" aria-hidden="true">
-          [SELECT]
+        <span className="text-edge group-hover:text-signal transition-colors font-display text-[10px] tracking-wide" aria-hidden="true">
+          {isArcadeTheme ? '[SELECT]' : 'SELECT'}
         </span>
       </div>
     </button>

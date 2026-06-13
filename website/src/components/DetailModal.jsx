@@ -3,6 +3,13 @@ import { RISK_META } from '../utils/risk';
 import LiveCounter from './LiveCounter';
 import SizeComparison from './SizeComparison';
 
+const badgeColors = {
+  hazardous: 'bg-hazardous/20 border-hazardous text-hazardous shadow-glow-hazardous',
+  watch: 'bg-watch/20 border-watch text-watch shadow-glow-watch',
+  notable: 'bg-notable/20 border-notable text-notable shadow-glow-notable',
+  routine: 'bg-routine/20 border-routine text-routine shadow-glow-routine',
+};
+
 function Stat({ label, value }) {
   return (
     <div className="border border-edge bg-void/50 p-3 select-none">
@@ -12,25 +19,26 @@ function Stat({ label, value }) {
   );
 }
 
-export default function DetailModal({ asteroid, onClose }) {
+export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   const [report, setReport] = useState(null);
   const [reportNote, setReportNote] = useState(null);
   const [reportState, setReportState] = useState('loading');
+  const [coords, setCoords] = useState(null);
+  const [locating, setLocating] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setReport(null);
-    setReportNote(null);
+  const fetchReport = (userCoords = null) => {
     setReportState('loading');
-
     fetch('/api/field-report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(asteroid),
+      body: JSON.stringify({
+        asteroid,
+        latitude: userCoords?.latitude,
+        longitude: userCoords?.longitude,
+      }),
     })
       .then((res) => res.json())
       .then((data) => {
-        if (cancelled) return;
         if (data.report) {
           setReport(data.report);
           setReportState('done');
@@ -40,16 +48,38 @@ export default function DetailModal({ asteroid, onClose }) {
         }
       })
       .catch((err) => {
-        if (!cancelled) {
-          setReportNote(err?.message || 'Network error');
-          setReportState('unavailable');
-        }
+        setReportNote(err?.message || 'Network error');
+        setReportState('unavailable');
       });
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    setCoords(null);
+    fetchReport(null);
   }, [asteroid]);
+
+  function handleScanSky() {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newCoords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setCoords(newCoords);
+        setLocating(false);
+        fetchReport(newCoords);
+      },
+      (error) => {
+        setLocating(false);
+        setReportNote(`GPS acquisition failed: ${error.message}`);
+      }
+    );
+  }
 
   useEffect(() => {
     function onKey(e) {
@@ -63,10 +93,10 @@ export default function DetailModal({ asteroid, onClose }) {
   const approachDate = new Date(asteroid.approachEpoch);
 
   const panelClass = 
-    asteroid.riskLevel === 'hazardous' ? 'arcade-panel-hazardous shadow-[0_0_25px_#FF0055]' :
-    asteroid.riskLevel === 'watch' ? 'arcade-panel-watch shadow-[0_0_25px_#FF8800]' :
-    asteroid.riskLevel === 'notable' ? 'arcade-panel-notable shadow-[0_0_25px_#FFD700]' :
-    'arcade-panel shadow-[0_0_25px_#00F0FF]';
+    asteroid.riskLevel === 'hazardous' ? 'arcade-panel-hazardous shadow-glow-hazardous-lg' :
+    asteroid.riskLevel === 'watch' ? 'arcade-panel-watch shadow-glow-watch-lg' :
+    asteroid.riskLevel === 'notable' ? 'arcade-panel-notable shadow-glow-notable-lg' :
+    'arcade-panel shadow-glow-cyan-lg';
 
   return (
     <div
@@ -83,13 +113,7 @@ export default function DetailModal({ asteroid, onClose }) {
         <div className="flex items-start justify-between mb-4 border-b border-edge/30 pb-3">
           <div>
             <span
-              className="font-display text-[9px] px-2 py-0.5 border"
-              style={{ 
-                color: meta.color, 
-                borderColor: `${meta.color}80`, 
-                boxShadow: `0 0 5px ${meta.color}`,
-                background: `${meta.color}20` 
-              }}
+              className={`font-display text-[9px] px-2 py-0.5 border ${badgeColors[asteroid.riskLevel] || badgeColors.routine}`}
             >
               {meta.label.toUpperCase()}
             </span>
@@ -100,7 +124,7 @@ export default function DetailModal({ asteroid, onClose }) {
             className="bg-void border-2 border-edge text-edge hover:border-signal hover:text-signal px-2 py-1 font-display text-[9px] cursor-pointer select-none"
             aria-label="Close details"
           >
-            [ X ]
+            {isArcadeTheme ? '[ X ]' : 'X'}
           </button>
         </div>
 
@@ -144,15 +168,19 @@ export default function DetailModal({ asteroid, onClose }) {
             AI DIAGNOSTIC REPORT
           </p>
           {reportState === 'loading' && (
-            <p className="text-dim text-md animate-pulse font-mono">&gt; COMPILING SENSOR DATA READOUT...</p>
+            <p className="text-dim text-sm animate-pulse font-mono">
+              {isArcadeTheme ? '> COMPILING SENSOR DATA READOUT...' : 'Compiling sensor data readout...'}
+            </p>
           )}
           {reportState === 'done' && (
-            <p className="text-ink/90 text-md leading-relaxed font-mono">&gt; {report.toUpperCase()}</p>
+            <p className="text-ink/90 text-sm leading-relaxed font-mono font-bold">
+              {isArcadeTheme ? `> ${report.toUpperCase()}` : report}
+            </p>
           )}
           {reportState === 'unavailable' && (
-            <div className="text-dim text-md leading-relaxed space-y-2 font-mono">
+            <div className="text-dim text-sm leading-relaxed space-y-2 font-mono">
               <p>
-                &gt; ERROR: AI COGNITIVE SUBSYSTEM OFFLINE.
+                {isArcadeTheme ? '> ERROR: AI COGNITIVE SUBSYSTEM OFFLINE.' : 'Error: AI cognitive subsystem offline.'}
               </p>
               <p className="text-xs text-dim">
                 SET <code className="font-mono text-signal">GEMINI_API_KEY</code> ENVDETAILS TO CONNECT.
@@ -162,6 +190,34 @@ export default function DetailModal({ asteroid, onClose }) {
                   CODE: {reportNote.toUpperCase()}
                 </p>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Local Sky Correlator */}
+        <div className="border border-edge bg-void/60 p-4 mt-4">
+          <p className="font-display text-[10px] uppercase text-cyan-400 glow-cyan mb-2">
+            {isArcadeTheme ? 'LOCAL SKY RADAR CORRELATOR' : 'Local Sky Radar Correlator'}
+          </p>
+          {!coords ? (
+            <button
+              onClick={handleScanSky}
+              disabled={locating}
+              className="w-full bg-void border border-edge hover:border-signal text-ink px-3 py-2 text-xs font-mono transition-colors cursor-pointer disabled:opacity-50 select-none"
+            >
+              {locating ? 'GPS LOCK ACQUIRING...' : (isArcadeTheme ? '[ ACTIVATE SKY SCANNER ]' : 'Scan Local Sky (Request GPS)')}
+            </button>
+          ) : (
+            <div className="space-y-2 font-mono text-sm text-dim">
+              <div className="flex justify-between border-b border-edge/20 pb-1">
+                <span>GPS LOCK STATUS:</span>
+                <span className="text-routine font-bold">
+                  LAT {coords.latitude.toFixed(4)} &middot; LNG {coords.longitude.toFixed(4)}
+                </span>
+              </div>
+              <p className="text-xs text-ink/80 leading-relaxed font-mono">
+                {isArcadeTheme ? '>> SYSTEM CORRELATED LOCAL SKY COORDINATES APPLIED TO TELEMETRY.' : 'System-correlated local sky coordinates applied to telemetry.'}
+              </p>
             </div>
           )}
         </div>

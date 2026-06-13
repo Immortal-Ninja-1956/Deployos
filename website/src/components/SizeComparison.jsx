@@ -17,9 +17,7 @@ export default function SizeComparison({ asteroid }) {
       {bars.map((b) => {
         const isObject = b.key === 'object';
         const isHuman = b.key === 'human';
-        const colorClass = isObject ? 'from-hazardous/30 to-hazardous' : isHuman ? 'from-cyan-400/30 to-cyan-400' : 'from-notable/30 to-notable';
-        const glowStyle = isObject ? '0 0 10px #FF0055' : isHuman ? '0 0 10px #00F0FF' : '0 0 10px #FFEA00';
-        const borderColor = isObject ? '#FF0055' : isHuman ? '#00F0FF' : '#FFEA00';
+        const colorClass = isObject ? 'from-hazardous/30 to-hazardous border-hazardous shadow-glow-hazardous' : isHuman ? 'from-edge/30 to-edge border-edge shadow-glow-cyan' : 'from-notable/30 to-notable border-notable shadow-glow-notable';
 
         return (
           <div key={b.key} className="flex flex-col items-center justify-end h-full flex-1 min-w-0">
@@ -29,9 +27,7 @@ export default function SizeComparison({ asteroid }) {
             <div
               className={`w-8 sm:w-12 border-2 bg-gradient-to-t ${colorClass}`}
               style={{ 
-                height: `${Math.max(4, (b.value / maxVal) * 100)}%`,
-                borderColor: borderColor,
-                boxShadow: glowStyle
+                height: `${Math.max(4, (b.value / maxVal) * 100)}%`
               }}
               aria-hidden="true"
             />

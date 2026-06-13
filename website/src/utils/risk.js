@@ -19,22 +19,18 @@ export function computeRisk({ isHazardous, missDistanceLD, diameterMax }) {
 export const RISK_META = {
   hazardous: {
     label: 'Hazardous',
-    color: '#FF5C5C',
-    glow: 'rgba(255, 92, 92, 0.45)',
+    riskKey: 'hazardous',
   },
   watch: {
     label: 'Watch',
-    color: '#FF9F40',
-    glow: 'rgba(255, 159, 64, 0.4)',
+    riskKey: 'watch',
   },
   notable: {
     label: 'Notable',
-    color: '#FFD23F',
-    glow: 'rgba(255, 210, 63, 0.35)',
+    riskKey: 'notable',
   },
   routine: {
     label: 'Routine',
-    color: '#4ADE80',
-    glow: 'rgba(74, 222, 128, 0.3)',
+    riskKey: 'routine',
   },
 };

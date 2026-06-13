@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import DisclaimerBanner from './components/DisclaimerBanner';
+import Header from './components/Header';
 import Hero from './components/Hero';
 import OrbitalCanvas from './components/OrbitalCanvas';
 import AsteroidList from './components/AsteroidList';
@@ -11,6 +12,7 @@ import Toast from './components/Toast';
 import { useAsteroidFeed } from './hooks/useAsteroidFeed';
 
 export default function App() {
+  const [isArcadeTheme, setIsArcadeTheme] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterRisk, setFilterRisk] = useState('all');
   const [sortMetric, setSortMetric] = useState('distance');
@@ -36,13 +38,14 @@ export default function App() {
   }, [asteroids, filterRisk, sortMetric]);
 
   return (
-    <div className="min-h-screen bg-void text-ink font-body">
+    <div className={`min-h-screen bg-void text-ink font-body transition-colors duration-300 ${isArcadeTheme ? 'theme-arcade' : ''}`}>
       <div className="starfield" aria-hidden="true" />
       <div className="vector-grid" aria-hidden="true" />
 
       <DisclaimerBanner />
 
       <main className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <Header isArcadeTheme={isArcadeTheme} onToggleTheme={() => setIsArcadeTheme(!isArcadeTheme)} />
         <Controls
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
@@ -51,15 +54,15 @@ export default function App() {
           sortMetric={sortMetric}
           onSortChange={setSortMetric}
         />
-        <Hero asteroids={displayedAsteroids} loading={loading} isDemoData={isDemoData} />
-        <OrbitalCanvas asteroids={displayedAsteroids} onSelect={setSelected} />
-        <AsteroidList asteroids={displayedAsteroids} onSelect={setSelected} loading={loading} />
-        <HistoricalContext />
+        <Hero asteroids={displayedAsteroids} loading={loading} isDemoData={isDemoData} isArcadeTheme={isArcadeTheme} />
+        <OrbitalCanvas asteroids={displayedAsteroids} onSelect={setSelected} isArcadeTheme={isArcadeTheme} />
+        <AsteroidList asteroids={displayedAsteroids} onSelect={setSelected} loading={loading} isArcadeTheme={isArcadeTheme} />
+        <HistoricalContext isArcadeTheme={isArcadeTheme} />
       </main>
 
       <Footer />
 
-      {selected && <DetailModal asteroid={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailModal asteroid={selected} onClose={() => setSelected(null)} isArcadeTheme={isArcadeTheme} />}
       <Toast message={toastMessage} onClose={clearToast} />
     </div>
   );

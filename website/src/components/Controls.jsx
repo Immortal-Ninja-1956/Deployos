@@ -18,7 +18,7 @@ export default function Controls({
           type="date"
           value={selectedDate}
           onChange={(e) => onDateChange(e.target.value)}
-          className="bg-void border-2 border-edge text-ink text-md px-3 py-1.5 focus:outline-none focus:border-signal focus:shadow-[0_0_8px_#FF007F] w-full sm:w-auto font-mono select-text"
+          className="bg-void border-2 border-edge text-ink text-sm px-3 py-1.5 focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal w-full sm:w-auto font-mono select-text"
         />
       </div>
 
@@ -31,7 +31,7 @@ export default function Controls({
             <select
               value={filterRisk}
               onChange={(e) => onFilterChange(e.target.value)}
-              className="bg-void border-2 border-edge text-ink text-md px-3 py-1.5 focus:outline-none focus:border-signal focus:shadow-[0_0_8px_#FF007F] w-full font-mono cursor-pointer"
+              className="bg-void border-2 border-edge text-ink text-sm px-3 py-1.5 focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal w-full font-mono cursor-pointer"
             >
               <option value="all">ALL OBJECTS</option>
               <option value="hazardous">HAZARDOUS ONLY</option>
@@ -50,7 +50,7 @@ export default function Controls({
             <select
               value={sortMetric}
               onChange={(e) => onSortChange(e.target.value)}
-              className="bg-void border-2 border-edge text-ink text-md px-3 py-1.5 focus:outline-none focus:border-signal focus:shadow-[0_0_8px_#FF007F] w-full font-mono cursor-pointer"
+              className="bg-void border-2 border-edge text-ink text-sm px-3 py-1.5 focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal w-full font-mono cursor-pointer"
             >
               <option value="distance">CLOSEST APPROACH</option>
               <option value="size">LARGEST DIAMETER</option>

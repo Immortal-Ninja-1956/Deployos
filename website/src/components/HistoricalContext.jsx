@@ -22,17 +22,19 @@ const EVENTS = [
   },
 ];
 
-export default function HistoricalContext() {
+export default function HistoricalContext({ isArcadeTheme }) {
   return (
     <section className="my-12 select-none">
-      <h2 className="font-display text-xs text-cyan-400 glow-cyan mb-2 border-b-2 border-edge/30 pb-2">[ HISTORICAL IMPACT DATA ]</h2>
+      <h2 className="font-display text-xs text-cyan-400 glow-cyan mb-2 border-b-2 border-edge/30 pb-2">
+        {isArcadeTheme ? '[ HISTORICAL IMPACT DATA ]' : 'HISTORICAL IMPACT DATA'}
+      </h2>
       <p className="text-dim text-sm mb-6 font-mono">
         OBJECTS OF CORRESPONDING SIZE HAVE PREVIOUSLY PENETRATED EARTH ATMOSPHERE.
       </p>
 
       <div className="grid sm:grid-cols-3 gap-6">
         {EVENTS.map((ev) => (
-          <div key={ev.name} className="arcade-panel p-5 hover:shadow-[0_0_12px_#00F0FF]">
+          <div key={ev.name} className="arcade-panel p-5 hover:shadow-glow-cyan">
             <p className="font-display text-[9px] text-signal glow-magenta">{ev.year}</p>
             <h3 className="font-arcade text-lg text-ink font-bold mt-2 tracking-wide uppercase">{ev.name}</h3>
             <p className="font-mono text-xs text-cyan-400 mt-1 mb-3 uppercase font-bold">EST SIZE: {ev.size}</p>

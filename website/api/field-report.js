@@ -3,11 +3,16 @@
 // for the current free-tier "Flash" model name and update GEMINI_MODEL below.
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
-function buildPrompt(asteroid) {
-  return `You are a calm, curious science communicator writing for someone who just saw a scary asteroid headline. You will receive JSON data about one near-Earth asteroid. Write EXACTLY 3 sentences:
+function buildPrompt(asteroid, latitude, longitude) {
+  let locationSentence = '';
+  if (latitude !== undefined && longitude !== undefined) {
+    locationSentence = `\n4. Estimate where the object is in the observer's local sky right now based on their coordinates (Latitude: ${latitude}, Longitude: ${longitude}). Specify a compass direction (e.g., East-South-East), estimated altitude angle in degrees, and the constellation it is passing through. Make it sound scientifically plausible and clear.`;
+  }
+
+  return `You are a calm, curious science communicator writing for someone who just saw a scary asteroid headline. You will receive JSON data about one near-Earth asteroid. Write EXACTLY ${latitude !== undefined ? '4' : '3'} sentences:
 1. Describe its size using a relatable human-scale comparison appropriate to its diameter in meters.
 2. Describe, as a clearly-framed hypothetical ("if it were headed our way"), what an object this size could do on impact.
-3. State plainly, using the actual miss distance in lunar distances (1 LD = 384,400 km), why this object will NOT hit Earth.
+3. State plainly, using the actual miss distance in lunar distances (1 LD = 384,400 km), why this object will NOT hit Earth.${locationSentence}
 
 If isHazardous is true, briefly explain that this is a size/distance classification used for monitoring purposes -- not a prediction of impact.
 
@@ -30,7 +35,16 @@ export default async function handler(req, res) {
     return res.status(200).json({ report: null, note: 'GEMINI_API_KEY not configured' });
   }
 
-  const asteroid = req.body;
+  let asteroid = req.body;
+  let latitude = undefined;
+  let longitude = undefined;
+
+  if (req.body && req.body.asteroid) {
+    asteroid = req.body.asteroid;
+    latitude = req.body.latitude;
+    longitude = req.body.longitude;
+  }
+
   if (!asteroid || !asteroid.name) {
     return res.status(400).json({ error: 'Missing asteroid payload' });
   }
@@ -42,7 +56,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: buildPrompt(asteroid) }] }],
+        contents: [{ parts: [{ text: buildPrompt(asteroid, latitude, longitude) }] }],
       }),
     });
 

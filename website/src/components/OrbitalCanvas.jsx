@@ -32,7 +32,7 @@ function drawAsteroidPolygon(ctx, x, y, radius, id, spin) {
   ctx.closePath();
 }
 
-export default function OrbitalCanvas({ asteroids, onSelect }) {
+export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
   const canvasRef = useRef(null);
   const dotsRef = useRef([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -51,6 +51,15 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
     let rotation = 0;
 
     function draw() {
+      // Get computed theme colors from document root
+      const computedStyle = getComputedStyle(document.documentElement);
+      const cRoutine = computedStyle.getPropertyValue('--color-routine').trim() || '#00FF99';
+      const cEdge = computedStyle.getPropertyValue('--color-edge').trim() || '#00F0FF';
+      const cInk = computedStyle.getPropertyValue('--color-ink').trim() || '#E0E8FF';
+      const cSignal = computedStyle.getPropertyValue('--color-signal').trim() || '#FF007F';
+
+      const getColor = (riskKey) => computedStyle.getPropertyValue(`--color-${riskKey}`).trim() || cEdge;
+
       ctx.clearRect(0, 0, SIZE, SIZE);
       ctx.shadowBlur = 0;
 
@@ -64,7 +73,8 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
         CENTER + Math.cos(sweepAngle) * sweepLength,
         CENTER + Math.sin(sweepAngle) * sweepLength
       );
-      ctx.strokeStyle = 'rgba(0, 255, 153, 0.22)';
+      ctx.strokeStyle = cRoutine;
+      ctx.globalAlpha = 0.22;
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
@@ -78,13 +88,14 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
           CENTER + Math.cos(trailAngle) * sweepLength,
           CENTER + Math.sin(trailAngle) * sweepLength
         );
-        ctx.strokeStyle = `rgba(0, 255, 153, ${0.22 * (1 - step / trailSteps)})`;
+        ctx.globalAlpha = 0.22 * (1 - step / trailSteps);
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
       // Concentric reference rings
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+      ctx.globalAlpha = 0.08;
+      ctx.strokeStyle = cEdge;
       ctx.setLineDash([3, 5]);
       ctx.lineWidth = 1;
       [0.35, 0.65, 0.95].forEach((f) => {
@@ -95,7 +106,8 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
       ctx.setLineDash([]); // Reset line dash
 
       // Draw Earth as a vector core with crosshairs
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = cEdge;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(CENTER - 22, CENTER);
@@ -104,23 +116,24 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
       ctx.lineTo(CENTER, CENTER + 22);
       ctx.stroke();
 
+      ctx.globalAlpha = 1.0;
       ctx.beginPath();
       ctx.arc(CENTER, CENTER, 10, 0, Math.PI * 2);
-      ctx.strokeStyle = '#00F0FF';
+      ctx.strokeStyle = cEdge;
       ctx.lineWidth = 2;
       ctx.shadowBlur = 10;
-      ctx.shadowColor = '#00F0FF';
+      ctx.shadowColor = cEdge;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
       ctx.beginPath();
       ctx.arc(CENTER, CENTER, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#E0E8FF';
+      ctx.fillStyle = cInk;
       ctx.fill();
 
       // Label coordinate center
-      ctx.fillStyle = '#00F0FF';
-      ctx.font = '10px "Press Start 2P"';
+      ctx.fillStyle = cEdge;
+      ctx.font = isArcadeTheme ? '10px "Press Start 2P", system-ui, sans-serif' : '11px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('EARTH', CENTER, CENTER - 16);
 
@@ -133,16 +146,16 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
         const x = CENTER + Math.cos(angle) * r;
         const y = CENTER + Math.sin(angle) * r;
         const dotR = Math.max(5, Math.min(14, Math.sqrt(a.diameterMeters.max) * 0.8));
-        const color = RISK_META[a.riskLevel].color;
+        const color = getColor(a.riskLevel);
 
         // Target Lock overlay
         if (i === focusedIndexRef.current) {
           ctx.beginPath();
           ctx.rect(x - dotR - 6, y - dotR - 6, (dotR + 6) * 2, (dotR + 6) * 2);
-          ctx.strokeStyle = '#FF007F';
+          ctx.strokeStyle = cSignal;
           ctx.lineWidth = 2;
           ctx.shadowBlur = 12;
-          ctx.shadowColor = '#FF007F';
+          ctx.shadowColor = cSignal;
           ctx.stroke();
           ctx.shadowBlur = 0;
 
@@ -156,16 +169,16 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
           ctx.lineTo(x, y - dotR - 6);
           ctx.moveTo(x, y + dotR + 6);
           ctx.lineTo(x, y + dotR + 12);
-          ctx.strokeStyle = '#FF007F';
+          ctx.strokeStyle = cSignal;
           ctx.lineWidth = 1;
           ctx.stroke();
 
           // Target labels
-          ctx.fillStyle = '#FF007F';
-          ctx.font = 'bold 15px "VT323"';
+          ctx.fillStyle = cSignal;
+          ctx.font = isArcadeTheme ? 'bold 15px "VT323", monospace' : 'bold 12px system-ui, sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(`LOCK >> ${a.name}`, x + dotR + 15, y - 6);
-          ctx.fillText(`RANGE >> ${a.missDistanceLD.toFixed(1)} LD`, x + dotR + 15, y + 8);
+          ctx.fillText(isArcadeTheme ? `LOCK >> ${a.name}` : `LOCK: ${a.name}`, x + dotR + 15, y - 6);
+          ctx.fillText(isArcadeTheme ? `RANGE >> ${a.missDistanceLD.toFixed(1)} LD` : `RANGE: ${a.missDistanceLD.toFixed(1)} LD`, x + dotR + 15, y + 8);
         }
 
         // Draw Asteroid procedural wireframe polygon
@@ -177,14 +190,16 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
         ctx.shadowColor = color;
         ctx.stroke();
         
-        ctx.fillStyle = `${color}18`;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.1;
         ctx.fill();
+        ctx.globalAlpha = 1.0;
         ctx.shadowBlur = 0;
 
         // Draw center core point
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = i === focusedIndexRef.current ? '#FF007F' : color;
+        ctx.fillStyle = i === focusedIndexRef.current ? cSignal : color;
         ctx.fill();
 
         dots.push({ x, y, hitRadius: dotR + 8, asteroid: a });
@@ -197,7 +212,7 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
 
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [asteroids]);
+  }, [asteroids, isArcadeTheme]);
 
   function handleClick(event) {
     const canvas = canvasRef.current;
@@ -232,7 +247,9 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
   return (
     <section className="my-10 select-none">
       <div className="flex items-baseline justify-between mb-4 border-b-2 border-edge/30 pb-2">
-        <h2 className="font-display text-xs text-cyan-400 glow-cyan">[ ORBITAL RADAR MAP ]</h2>
+        <h2 className="font-display text-xs text-cyan-400 glow-cyan">
+          {isArcadeTheme ? '[ ORBITAL RADAR MAP ]' : 'ORBITAL RADAR MAP'}
+        </h2>
         <p className="font-mono text-sm text-dim">CLICK SENSOR NODE FOR TELEMETRY</p>
       </div>
 
@@ -248,7 +265,7 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
           role="application"
           aria-roledescription="interactive map"
           aria-label={`Radial map of ${asteroids.length} approaching asteroids. Use arrow keys to select an asteroid, and Enter to view details. Currently focused: ${focusedIndex >= 0 ? asteroids[focusedIndex].name : 'none'}`}
-          className="w-full max-w-[460px] mx-auto aspect-square cursor-pointer block focus-visible:outline-2 focus-visible:outline-signal focus-visible:outline-offset-4 bg-[#05050A]"
+          className="w-full max-w-[460px] mx-auto aspect-square cursor-pointer block focus-visible:outline-2 focus-visible:outline-signal focus-visible:outline-offset-4 bg-void"
         />
       </div>
 
@@ -256,8 +273,7 @@ export default function OrbitalCanvas({ asteroids, onSelect }) {
         {Object.entries(RISK_META).map(([key, meta]) => (
           <span key={key} className="flex items-center gap-1.5">
             <span
-              className="inline-block w-3 h-3 border"
-              style={{ background: `${meta.color}30`, borderColor: meta.color, boxShadow: `0 0 5px ${meta.color}` }}
+              className={`inline-block w-3 h-3 border bg-${key}/30 border-${key} shadow-glow-${key}`}
             />
             {meta.label.toUpperCase()}
           </span>
