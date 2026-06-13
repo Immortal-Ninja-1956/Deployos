@@ -43,7 +43,7 @@ export default function AsteroidCard({ asteroid, onSelect, isArcadeTheme }) {
 
       <div className="flex items-center gap-3 shrink-0 select-none">
         <span
-          className={`font-display text-[9px] px-2 py-0.5 border hidden sm:inline-block ${badgeClass}`}
+          className={`font-arcade text-[9px] px-2 py-0.5 border hidden sm:inline-block ${badgeClass}`}
         >
           {meta.label.toUpperCase()}
         </span>
@@ -51,7 +51,7 @@ export default function AsteroidCard({ asteroid, onSelect, isArcadeTheme }) {
           className={`w-3 h-3 border sm:hidden ${badgeClass}`}
           aria-hidden="true"
         />
-        <span className="text-edge group-hover:text-signal transition-colors font-display text-[10px] tracking-wide" aria-hidden="true">
+        <span className="text-edge group-hover:text-signal transition-colors font-mono text-[10px] tracking-wide" aria-hidden="true">
           {isArcadeTheme ? '[SELECT]' : 'SELECT'}
         </span>
       </div>

@@ -37,6 +37,7 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
   const dotsRef = useRef([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const focusedIndexRef = useRef(-1);
+  const hoveredIndexRef = useRef(-1);
 
   useEffect(() => {
     focusedIndexRef.current = focusedIndex;
@@ -133,7 +134,7 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
 
       // Label coordinate center
       ctx.fillStyle = cEdge;
-      ctx.font = isArcadeTheme ? '10px "Press Start 2P", system-ui, sans-serif' : '11px system-ui, sans-serif';
+      ctx.font = isArcadeTheme ? '14px "VT323", monospace' : '11px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('EARTH', CENTER, CENTER - 16);
 
@@ -196,6 +197,17 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
         ctx.globalAlpha = 1.0;
         ctx.shadowBlur = 0;
 
+        // Draw hover label if hovered and not focused
+        if (i === hoveredIndexRef.current && i !== focusedIndexRef.current) {
+          ctx.fillStyle = color;
+          ctx.font = isArcadeTheme ? '14px "VT323", monospace' : '11px system-ui, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = color;
+          ctx.fillText(a.name, x + dotR + 10, y + 4);
+          ctx.shadowBlur = 0;
+        }
+
         // Draw center core point
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
@@ -213,6 +225,26 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
     draw();
     return () => cancelAnimationFrame(raf);
   }, [asteroids, isArcadeTheme]);
+
+  function handleMouseMove(event) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * SIZE;
+    const y = ((event.clientY - rect.top) / rect.height) * SIZE;
+
+    const hitIndex = dotsRef.current.findIndex(
+      (d) => Math.hypot(d.x - x, d.y - y) <= d.hitRadius
+    );
+    hoveredIndexRef.current = hitIndex;
+    canvas.style.cursor = hitIndex >= 0 ? 'crosshair' : 'default';
+  }
+
+  function handleMouseLeave() {
+    hoveredIndexRef.current = -1;
+    const canvas = canvasRef.current;
+    if (canvas) canvas.style.cursor = 'default';
+  }
 
   function handleClick(event) {
     const canvas = canvasRef.current;
@@ -259,13 +291,15 @@ export default function OrbitalCanvas({ asteroids, onSelect, isArcadeTheme }) {
           width={SIZE}
           height={SIZE}
           onClick={handleClick}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           tabIndex={0}
           role="application"
           aria-roledescription="interactive map"
           aria-label={`Radial map of ${asteroids.length} approaching asteroids. Use arrow keys to select an asteroid, and Enter to view details. Currently focused: ${focusedIndex >= 0 ? asteroids[focusedIndex].name : 'none'}`}
-          className="w-full max-w-[460px] mx-auto aspect-square cursor-pointer block focus-visible:outline-2 focus-visible:outline-signal focus-visible:outline-offset-4 bg-void"
+          className="w-full max-w-[460px] mx-auto aspect-square block focus-visible:outline-2 focus-visible:outline-signal focus-visible:outline-offset-4 bg-void"
         />
       </div>
 

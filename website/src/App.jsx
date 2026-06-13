@@ -56,7 +56,7 @@ export default function App() {
         />
         <Hero asteroids={displayedAsteroids} loading={loading} isDemoData={isDemoData} isArcadeTheme={isArcadeTheme} />
         <OrbitalCanvas asteroids={displayedAsteroids} onSelect={setSelected} isArcadeTheme={isArcadeTheme} />
-        <AsteroidList asteroids={displayedAsteroids} onSelect={setSelected} loading={loading} isArcadeTheme={isArcadeTheme} />
+        <AsteroidList asteroids={displayedAsteroids} onSelect={setSelected} loading={loading} isArcadeTheme={isArcadeTheme} onFilterChange={setFilterRisk} />
         <HistoricalContext isArcadeTheme={isArcadeTheme} />
       </main>
 

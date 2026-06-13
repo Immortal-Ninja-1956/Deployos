@@ -5,6 +5,17 @@ import LiveCounter from './LiveCounter';
 export default function Hero({ asteroids, loading, isDemoData, isArcadeTheme }) {
   const [count, setCount] = useState(0);
   const target = asteroids.length;
+  const [lastUpdated, setLastUpdated] = useState(() => {
+    const now = new Date();
+    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  });
+
+  useEffect(() => {
+    if (!loading) {
+      const now = new Date();
+      setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (!target) return;
@@ -33,9 +44,11 @@ export default function Hero({ asteroids, loading, isDemoData, isArcadeTheme }) 
       {/* Arcade cabinet header strip */}
       {isArcadeTheme && (
         <div className="flex items-center justify-between border-b-2 border-edge/30 pb-2 mb-6 font-display text-[9px] sm:text-[10px] tracking-wider text-signal select-none">
-          <span className="animate-text-blink text-routine glow-green">● SENSOR MODULE ACTIVE</span>
-          <span className="hidden sm:inline">HIGH SCORE: {Math.max(9999, target * 1450)}</span>
-          <span>CREDIT 01</span>
+          <span className="animate-text-blink text-routine glow-green">
+            ● SENSOR: {isDemoData ? 'OFFLINE SIMULATOR' : 'NASA NEOWS LIVE'}
+          </span>
+          <span className="hidden sm:inline">OBJECTS IN FEED: {target}</span>
+          <span>LAST UPDATED: {lastUpdated}</span>
         </div>
       )}
 

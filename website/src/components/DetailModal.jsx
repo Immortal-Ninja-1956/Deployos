@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { RISK_META } from '../utils/risk';
 import LiveCounter from './LiveCounter';
 import SizeComparison from './SizeComparison';
@@ -25,10 +25,24 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   const [reportState, setReportState] = useState('loading');
   const [coords, setCoords] = useState(null);
   const [locating, setLocating] = useState(false);
+  const controllerRef = useRef(null);
 
   const fetchReport = (userCoords = null) => {
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+    }
     setReportState('loading');
-    fetch('/api/field-report', {
+    setReportNote(null);
+    setReport(null);
+
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 10000);
+
+    const fetchPromise = fetch('/api/field-report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -36,8 +50,23 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
         latitude: userCoords?.latitude,
         longitude: userCoords?.longitude,
       }),
-    })
-      .then((res) => res.json())
+      signal: controller.signal,
+    });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('TIMEOUT'));
+      }, 10000);
+    });
+
+    Promise.race([fetchPromise, timeoutPromise])
+      .then((res) => {
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          throw new Error(`HTTP_${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (data.report) {
           setReport(data.report);
@@ -48,7 +77,13 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
         }
       })
       .catch((err) => {
-        setReportNote(err?.message || 'Network error');
+        clearTimeout(timeoutId);
+        controller.abort();
+        if (err.name === 'AbortError' || err.message === 'TIMEOUT') {
+          setReportNote('TIMEOUT');
+        } else {
+          setReportNote(err.message || 'Network error');
+        }
         setReportState('unavailable');
       });
   };
@@ -56,6 +91,11 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   useEffect(() => {
     setCoords(null);
     fetchReport(null);
+    return () => {
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+    };
   }, [asteroid]);
 
   function handleScanSky() {
@@ -83,11 +123,15 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
 
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      } else if ((e.key === 'r' || e.key === 'R') && reportState === 'unavailable') {
+        fetchReport(coords);
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, reportState, coords]);
 
   const meta = RISK_META[asteroid.riskLevel];
   const approachDate = new Date(asteroid.approachEpoch);
@@ -180,16 +224,30 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
           {reportState === 'unavailable' && (
             <div className="text-dim text-sm leading-relaxed space-y-2 font-mono">
               <p>
-                {isArcadeTheme ? '> ERROR: AI COGNITIVE SUBSYSTEM OFFLINE.' : 'Error: AI cognitive subsystem offline.'}
+                {reportNote === 'TIMEOUT' ? (
+                  isArcadeTheme ? '> SENSOR TIMEOUT — RETRY WITH [R]' : 'Sensor timeout — retry with [R]'
+                ) : (
+                  isArcadeTheme ? '> ERROR: AI COGNITIVE SUBSYSTEM OFFLINE.' : 'Error: AI cognitive subsystem offline.'
+                )}
               </p>
-              <p className="text-xs text-dim">
-                SET <code className="font-mono text-signal">GEMINI_API_KEY</code> ENVDETAILS TO CONNECT.
-              </p>
-              {reportNote && (
+              {reportNote !== 'TIMEOUT' && (
+                <p className="text-xs text-dim">
+                  SET <code className="font-mono text-signal">GEMINI_API_KEY</code> ENVDETAILS TO CONNECT.
+                </p>
+              )}
+              {reportNote && reportNote !== 'TIMEOUT' && (
                 <p className="text-xs bg-void/80 p-2 border border-edge font-mono text-rose-500 max-h-32 overflow-y-auto">
                   CODE: {reportNote.toUpperCase()}
                 </p>
               )}
+              <div className="mt-2.5">
+                <button
+                  onClick={() => fetchReport(coords)}
+                  className="bg-void border border-edge hover:border-signal text-ink px-2.5 py-1 text-[11px] font-mono transition-colors cursor-pointer select-none"
+                >
+                  {isArcadeTheme ? '[ RETRY DIAGNOSTIC ]' : 'Retry Diagnostic'}
+                </button>
+              </div>
             </div>
           )}
         </div>

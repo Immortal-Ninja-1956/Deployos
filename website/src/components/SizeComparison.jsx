@@ -13,7 +13,7 @@ export default function SizeComparison({ asteroid }) {
   ];
 
   return (
-    <div className="flex items-end justify-around gap-4 sm:gap-8 h-40 px-2 select-none font-mono">
+    <div className="flex items-end justify-around gap-4 sm:gap-8 h-[200px] px-2 select-none font-mono">
       {bars.map((b) => {
         const isObject = b.key === 'object';
         const isHuman = b.key === 'human';
@@ -27,7 +27,7 @@ export default function SizeComparison({ asteroid }) {
             <div
               className={`w-8 sm:w-12 border-2 bg-gradient-to-t ${colorClass}`}
               style={{ 
-                height: `${Math.max(4, (b.value / maxVal) * 100)}%`
+                height: `${Math.max(4, (Math.log10(b.value + 1) / Math.log10(maxVal + 1)) * 100)}%`
               }}
               aria-hidden="true"
             />

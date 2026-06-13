@@ -43,13 +43,19 @@
   
   /* Arcade Fonts */
   --font-body: "VT323", monospace;
-  --font-display: "Press Start 2P", cursive;
+  --font-display: "VT323", monospace;
   --font-arcade: "Orbitron", sans-serif;
   --font-mono: "VT323", monospace;
 
   font-size: 20px;
   line-height: 1.25;
   letter-spacing: 0.04em;
+}
+
+/* Reserve Press Start 2P for section headings >= 14px in arcade mode */
+.theme-arcade h2.font-display {
+  font-family: "Press Start 2P", cursive;
+  font-size: 14px;
 }
 
 html,
