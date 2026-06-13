@@ -28,6 +28,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   const controllerRef = useRef(null);
 
   const fetchReport = (userCoords = null) => {
+    const requestId = asteroid.id;
     if (controllerRef.current) {
       controllerRef.current.abort();
     }
@@ -62,12 +63,14 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     Promise.race([fetchPromise, timeoutPromise])
       .then((res) => {
         clearTimeout(timeoutId);
+        if (requestId !== asteroid.id) return null;
         if (!res.ok) {
           throw new Error(`HTTP_${res.status}`);
         }
         return res.json();
       })
       .then((data) => {
+        if (!data || requestId !== asteroid.id) return;
         if (data.report) {
           setReport(data.report);
           setReportState('done');
@@ -79,6 +82,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
       .catch((err) => {
         clearTimeout(timeoutId);
         controller.abort();
+        if (requestId !== asteroid.id) return;
         if (err.name === 'AbortError' || err.message === 'TIMEOUT') {
           setReportNote('TIMEOUT');
         } else {
