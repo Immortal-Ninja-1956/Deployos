@@ -38,7 +38,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-void text-ink font-body">
       <div className="starfield" aria-hidden="true" />
-      <div className="vignette" aria-hidden="true" />
+      <div className="vector-grid" aria-hidden="true" />
 
       <DisclaimerBanner />
 

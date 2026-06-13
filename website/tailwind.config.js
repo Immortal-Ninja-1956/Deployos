@@ -4,31 +4,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        void: '#07080D',
-        panel: '#12151F',
-        panel2: '#1A1E2B',
-        edge: '#262B3A',
-        ink: '#E8EAF0',
-        dim: '#8B92A8',
-        signal: '#FF6B35',
-        hazardous: '#FF5C5C',
-        watch: '#FF9F40',
-        notable: '#FFD23F',
-        routine: '#4ADE80',
+        void: '#05050A',       // Arcade screen pitch black/purple
+        panel: '#0C0C16',      // Dark arcade card panel
+        panel2: '#121222',     // Diagnostic panel
+        edge: '#00F0FF',       // Neon cyan wireframe
+        ink: '#E0E8FF',        // Bright light cyan-white text
+        dim: '#587098',        // Dimmed phosphor green/blue
+        signal: '#FF007F',     // Hot neon arcade pink
+        hazardous: '#FF0055',  // Bright arcade hazard red
+        watch: '#FF8800',      // Hot orange warning
+        notable: '#FFD700',    // Glowing gold
+        routine: '#00FF99',    // Vector neon green
       },
       fontFamily: {
-        display: ['"Sora"', 'sans-serif'],
-        body: ['"Inter"', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        display: ['"Press Start 2P"', 'cursive'],
+        arcade: ['"Orbitron"', 'sans-serif'],
+        body: ['"VT323"', 'monospace'],
+        mono: ['"VT323"', 'monospace'],
       },
       keyframes: {
         'fade-in': {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'crt-flicker': {
+          '0%': { opacity: '0.98' },
+          '50%': { opacity: '1.0' },
+          '100%': { opacity: '0.99' },
+        },
+        'text-blink': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.4s ease-out',
+        'crt-flicker': 'crt-flicker 0.2s infinite',
+        'text-blink': 'text-blink 0.8s steps(2, start) infinite',
       },
     },
   },

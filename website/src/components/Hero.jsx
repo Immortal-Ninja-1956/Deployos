@@ -29,43 +29,57 @@ export default function Hero({ asteroids, loading, isDemoData }) {
   const nearest = asteroids[0];
 
   return (
-    <section className="pt-10 pb-8 sm:pt-16 sm:pb-12">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-signal/90 mb-4">
-        Live near-earth object tracker
+    <section className="pt-8 pb-6 sm:pt-12 sm:pb-8">
+      {/* Arcade cabinet header strip */}
+      <div className="flex items-center justify-between border-b-2 border-edge/30 pb-2 mb-6 font-display text-[9px] sm:text-[10px] tracking-wider text-signal select-none">
+        <span className="animate-text-blink text-routine glow-green">● SENSOR MODULE ACTIVE</span>
+        <span className="hidden sm:inline">HIGH SCORE: {Math.max(9999, target * 1450)}</span>
+        <span>CREDIT 01</span>
+      </div>
+
+      <p className="font-display text-[10px] uppercase tracking-[0.2em] text-cyan-400 mb-4 glow-cyan select-none">
+        [ SYSTEM DIODE READOUT ]
       </p>
 
-      <h1 className="font-display text-4xl sm:text-6xl font-semibold leading-[1.08] tracking-tight text-ink max-w-3xl">
-        Right now, NASA is tracking{' '}
-        <span className="font-mono text-signal">{loading ? '\u2013' : count}</span>{' '}
-        {target === 1 ? 'asteroid' : 'asteroids'} passing Earth this week.
+      <h1 className="font-arcade text-3xl sm:text-5xl font-black leading-[1.2] tracking-wide text-ink max-w-3xl">
+        NASA RADAR TRACKING{' '}
+        <span className="font-display text-2xl sm:text-4xl text-signal glow-magenta ml-1 mr-1 animate-pulse">
+          {loading ? '\u2013' : count}
+        </span>{' '}
+        {target === 1 ? 'OBJECT' : 'OBJECTS'} PASSING EARTH.
       </h1>
 
-      <p className="mt-4 max-w-2xl text-dim text-base sm:text-lg leading-relaxed">
-        Most are harmless. A few are worth knowing about. NearMiss turns raw orbital data
-        into something you can actually picture.
+      <p className="mt-4 max-w-2xl text-dim text-lg leading-relaxed font-mono">
+        &gt; ESTIMATING TRAJECTORIES. REAL-TIME DATA STREAM SYNCHRONIZED WITH NASA JPL SENSORS.
       </p>
 
       {nearest && (
-        <div className="mt-10 rounded-2xl border border-edge bg-panel/60 backdrop-blur-sm p-5 sm:p-6 max-w-xl animate-fade-in">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-dim">
-              Closest approach this week
+        <div className={`mt-8 animate-fade-in ${
+          nearest.riskLevel === 'hazardous' ? 'arcade-panel-hazardous' : 
+          nearest.riskLevel === 'watch' ? 'arcade-panel-watch' : 
+          nearest.riskLevel === 'notable' ? 'arcade-panel-notable' : 
+          'arcade-panel'
+        } p-5 sm:p-6 max-w-xl`}>
+          <div className="flex items-center justify-between mb-3 border-b border-edge/30 pb-2">
+            <span className="font-display text-[9px] uppercase tracking-wider text-dim">
+              NEAREST VECTOR ALERT
             </span>
             <span
-              className="font-mono text-xs px-2 py-1 rounded-full border"
+              className="font-display text-[9px] px-2 py-0.5 border"
               style={{
                 color: RISK_META[nearest.riskLevel].color,
-                borderColor: `${RISK_META[nearest.riskLevel].color}60`,
+                borderColor: `${RISK_META[nearest.riskLevel].color}80`,
+                boxShadow: `0 0 5px ${RISK_META[nearest.riskLevel].color}`
               }}
             >
               {RISK_META[nearest.riskLevel].label}
             </span>
           </div>
 
-          <h2 className="font-display text-2xl text-ink mb-1">{nearest.name}</h2>
-          <p className="text-dim text-sm mb-4">
-            About the size of {nearest.sizeRef.label} {nearest.sizeRef.emoji} &middot;{' '}
-            {nearest.missDistanceLD.toFixed(1)} lunar distances at closest
+          <h2 className="font-arcade text-2xl text-ink font-bold mb-1 tracking-wide uppercase">{nearest.name}</h2>
+          <p className="text-dim text-md mb-4 font-mono">
+            SIZE COMP: {nearest.sizeRef.label.toUpperCase()} {nearest.sizeRef.emoji} &middot;{' '}
+            MISS DIST: {nearest.missDistanceLD.toFixed(1)} LD
           </p>
 
           <LiveCounter asteroid={nearest} />
@@ -73,8 +87,8 @@ export default function Hero({ asteroids, loading, isDemoData }) {
       )}
 
       {isDemoData && (
-        <p className="mt-4 text-xs font-mono text-dim/70">
-          Showing simulated demo data &mdash; live NASA feed unavailable right now.
+        <p className="mt-4 text-sm font-mono text-signal/80 animate-pulse">
+          &gt;&gt; MONITOR STATUS: OFFLINE. DEMO PROTOCOL RUNNING.
         </p>
       )}
     </section>

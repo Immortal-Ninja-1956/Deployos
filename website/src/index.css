@@ -13,63 +13,165 @@ body,
 }
 
 body {
-  @apply bg-void text-ink antialiased;
-  font-feature-settings: 'tnum' 1;
+  @apply bg-void text-ink antialiased font-body select-none;
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* Subtle multi-layer starfield, fixed behind all content */
+/* CRT Screen Scanlines & Bezel Glow */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  z-index: 9999;
+  background-size: 100% 4px, 8px 100%;
+  pointer-events: none;
+}
+
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0) 65%, rgba(0, 0, 0, 0.45) 100%);
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* Neon Text Shadow Styles */
+.glow-cyan {
+  text-shadow: 0 0 5px #00F0FF, 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.glow-magenta {
+  text-shadow: 0 0 5px #FF007F, 0 0 10px rgba(255, 0, 127, 0.5);
+}
+
+.glow-red {
+  text-shadow: 0 0 5px #FF0055, 0 0 10px rgba(255, 0, 85, 0.5);
+}
+
+.glow-yellow {
+  text-shadow: 0 0 5px #FFEA00, 0 0 10px rgba(255, 234, 0, 0.5);
+}
+
+.glow-orange {
+  text-shadow: 0 0 5px #FF8800, 0 0 10px rgba(255, 136, 0, 0.5);
+}
+
+.glow-green {
+  text-shadow: 0 0 5px #00FF99, 0 0 10px rgba(0, 255, 153, 0.5);
+}
+
+/* Arcade Cabinet Wireframe Panels */
+.arcade-panel {
+  background-color: #0C0C16;
+  border: 4px double #00F0FF;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.05);
+}
+
+.arcade-panel-hazardous {
+  background-color: #0C0C16;
+  border: 4px double #FF0055;
+  box-shadow: 0 0 12px rgba(255, 0, 85, 0.15), inset 0 0 10px rgba(255, 0, 85, 0.05);
+}
+
+.arcade-panel-watch {
+  background-color: #0C0C16;
+  border: 4px double #FF8800;
+  box-shadow: 0 0 12px rgba(255, 136, 0, 0.15), inset 0 0 10px rgba(255, 136, 0, 0.05);
+}
+
+.arcade-panel-notable {
+  background-color: #0C0C16;
+  border: 4px double #FFD700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15), inset 0 0 10px rgba(255, 215, 0, 0.05);
+}
+
+/* Custom Arcade Button Styles */
+.arcade-btn {
+  background: #121222;
+  border: 2px solid #00F0FF;
+  color: #00F0FF;
+  font-family: "Orbitron", sans-serif;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  transition: all 0.1s ease;
+  box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+}
+
+.arcade-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.arcade-btn:active {
+  transform: translateY(1px);
+}
+
+.arcade-btn-active {
+  background: #00F0FF !important;
+  color: #05050A !important;
+  box-shadow: 0 0 12px #00F0FF !important;
+}
+
+/* Grid & Star Backgrounds */
+.vector-grid {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .starfield {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -2;
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.25;
   background-image:
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.9) 0, rgba(255, 255, 255, 0) 1px),
-    radial-gradient(circle at 70% 65%, rgba(255, 255, 255, 0.7) 0, rgba(255, 255, 255, 0) 1px),
-    radial-gradient(circle at 40% 82%, rgba(255, 255, 255, 0.6) 0, rgba(255, 255, 255, 0) 1px),
-    radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.8) 0, rgba(255, 255, 255, 0) 1px),
-    radial-gradient(circle at 12% 92%, rgba(255, 255, 255, 0.5) 0, rgba(255, 255, 255, 0) 1px),
-    radial-gradient(circle at 55% 8%, rgba(255, 255, 255, 0.7) 0, rgba(255, 255, 255, 0) 1px),
-    radial-gradient(circle at 92% 50%, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0) 1px);
+    radial-gradient(circle at 15% 25%, #FFF 0, rgba(255,255,255,0) 2px),
+    radial-gradient(circle at 75% 35%, #FFF 0, rgba(255,255,255,0) 2px),
+    radial-gradient(circle at 45% 75%, #FFF 0, rgba(255,255,255,0) 2px),
+    radial-gradient(circle at 85% 85%, #FFF 0, rgba(255,255,255,0) 2px);
   background-repeat: repeat;
-  background-size:
-    600px 600px,
-    800px 800px,
-    520px 520px,
-    700px 700px,
-    640px 640px,
-    760px 760px,
-    900px 900px;
-}
-
-/* Radial vignette to keep edges calm */
-.vignette {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 53, 0.07), transparent 55%);
+  background-size: 400px 400px;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262b3a;
-  border-radius: 4px;
+  background: #00F0FF;
+  border: 2px solid #05050A;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0C0C16;
 }
 
-/* Visible focus rings for accessibility */
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid #ff6b35;
+  outline: 2px solid #FF007F;
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

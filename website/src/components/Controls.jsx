@@ -9,50 +9,54 @@ export default function Controls({
   onSortChange,
 }) {
   return (
-    <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-end sm:items-center bg-panel/40 border border-edge rounded-xl p-4 my-8">
+    <div className="arcade-panel flex flex-col sm:flex-row flex-wrap gap-6 items-end sm:items-center p-5 my-8">
       <div className="flex-1 w-full sm:w-auto">
-        <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-dim mb-2">
-          <Calendar size={14} /> 7-Day Window Start
+        <label className="flex items-center gap-2 text-xs font-display uppercase text-cyan-400 mb-2 glow-cyan">
+          <Calendar size={12} /> Date Select
         </label>
         <input
           type="date"
           value={selectedDate}
           onChange={(e) => onDateChange(e.target.value)}
-          className="bg-void border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-signal w-full sm:w-auto"
+          className="bg-void border-2 border-edge text-ink text-md px-3 py-1.5 focus:outline-none focus:border-signal focus:shadow-[0_0_8px_#FF007F] w-full sm:w-auto font-mono select-text"
         />
       </div>
 
-      <div className="flex flex-1 sm:flex-none gap-4 w-full sm:w-auto">
-        <div className="flex-1 sm:w-40">
-          <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-dim mb-2">
-            <Filter size={14} /> Risk Filter
+      <div className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto flex-1 sm:flex-none">
+        <div className="flex-1 sm:w-48">
+          <label className="flex items-center gap-2 text-xs font-display uppercase text-cyan-400 mb-2 glow-cyan">
+            <Filter size={12} /> Risk Filter
           </label>
-          <select
-            value={filterRisk}
-            onChange={(e) => onFilterChange(e.target.value)}
-            className="bg-void border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-signal w-full appearance-none"
-          >
-            <option value="all">All Risks</option>
-            <option value="hazardous">Hazardous</option>
-            <option value="watch">Watch</option>
-            <option value="notable">Notable</option>
-            <option value="routine">Routine</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filterRisk}
+              onChange={(e) => onFilterChange(e.target.value)}
+              className="bg-void border-2 border-edge text-ink text-md px-3 py-1.5 focus:outline-none focus:border-signal focus:shadow-[0_0_8px_#FF007F] w-full font-mono cursor-pointer"
+            >
+              <option value="all">ALL OBJECTS</option>
+              <option value="hazardous">HAZARDOUS ONLY</option>
+              <option value="watch">WATCH ONLY</option>
+              <option value="notable">NOTABLE ONLY</option>
+              <option value="routine">ROUTINE ONLY</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex-1 sm:w-48">
-          <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-dim mb-2">
-            <ArrowUpDown size={14} /> Sort By
+        <div className="flex-1 sm:w-56">
+          <label className="flex items-center gap-2 text-xs font-display uppercase text-cyan-400 mb-2 glow-cyan">
+            <ArrowUpDown size={12} /> Sort Order
           </label>
-          <select
-            value={sortMetric}
-            onChange={(e) => onSortChange(e.target.value)}
-            className="bg-void border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-signal w-full appearance-none"
-          >
-            <option value="distance">Closest Approach</option>
-            <option value="size">Largest Size</option>
-            <option value="velocity">Fastest Velocity</option>
-          </select>
+          <div className="relative">
+            <select
+              value={sortMetric}
+              onChange={(e) => onSortChange(e.target.value)}
+              className="bg-void border-2 border-edge text-ink text-md px-3 py-1.5 focus:outline-none focus:border-signal focus:shadow-[0_0_8px_#FF007F] w-full font-mono cursor-pointer"
+            >
+              <option value="distance">CLOSEST APPROACH</option>
+              <option value="size">LARGEST DIAMETER</option>
+              <option value="velocity">MAXIMUM VELOCITY</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>

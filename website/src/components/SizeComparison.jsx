@@ -13,25 +13,37 @@ export default function SizeComparison({ asteroid }) {
   ];
 
   return (
-    <div className="flex items-end justify-around gap-3 sm:gap-6 h-40 px-1">
-      {bars.map((b) => (
-        <div key={b.key} className="flex flex-col items-center justify-end h-full flex-1 min-w-0">
-          <span className="font-mono text-[11px] text-dim mb-1 whitespace-nowrap">
-            {formatMeters(b.value)}
-          </span>
-          <div
-            className="w-7 sm:w-10 rounded-t-md bg-gradient-to-t from-signal/15 to-signal/70"
-            style={{ height: `${Math.max(4, (b.value / maxVal) * 100)}%` }}
-            aria-hidden="true"
-          />
-          <span
-            className="mt-2 text-[11px] sm:text-xs text-dim text-center max-w-full truncate"
-            title={b.label}
-          >
-            {b.emoji} {b.label}
-          </span>
-        </div>
-      ))}
+    <div className="flex items-end justify-around gap-4 sm:gap-8 h-40 px-2 select-none font-mono">
+      {bars.map((b) => {
+        const isObject = b.key === 'object';
+        const isHuman = b.key === 'human';
+        const colorClass = isObject ? 'from-hazardous/30 to-hazardous' : isHuman ? 'from-cyan-400/30 to-cyan-400' : 'from-notable/30 to-notable';
+        const glowStyle = isObject ? '0 0 10px #FF0055' : isHuman ? '0 0 10px #00F0FF' : '0 0 10px #FFEA00';
+        const borderColor = isObject ? '#FF0055' : isHuman ? '#00F0FF' : '#FFEA00';
+
+        return (
+          <div key={b.key} className="flex flex-col items-center justify-end h-full flex-1 min-w-0">
+            <span className="font-mono text-xs text-dim mb-1.5 whitespace-nowrap">
+              {formatMeters(b.value)}
+            </span>
+            <div
+              className={`w-8 sm:w-12 border-2 bg-gradient-to-t ${colorClass}`}
+              style={{ 
+                height: `${Math.max(4, (b.value / maxVal) * 100)}%`,
+                borderColor: borderColor,
+                boxShadow: glowStyle
+              }}
+              aria-hidden="true"
+            />
+            <span
+              className="mt-2 text-xs text-dim text-center max-w-full truncate uppercase tracking-wider font-bold"
+              title={b.label}
+            >
+              {b.emoji} {b.label}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
