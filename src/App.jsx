@@ -21,10 +21,41 @@ export default function App() {
   const { asteroids, loading, isDemoData, toastMessage, clearToast } = useAsteroidFeed(selectedDate);
   const [selected, setSelected] = useState(null);
 
+  const [globalResults, setGlobalResults] = useState(null);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
+  const [appToast, setAppToast] = useState(null);
+
   // Close the detail modal when the date changes to prevent viewing stale data
   useEffect(() => {
     setSelected(null);
   }, [selectedDate]);
+
+  const handleGlobalSearch = async (query) => {
+    if (!query || query.trim() === '') return;
+    setGlobalSearchLoading(true);
+    setGlobalResults(null);
+    setAppToast(null);
+
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+      if (!res.ok) {
+        throw new Error(`HTTP_${res.status}`);
+      }
+      const data = await res.json();
+      if (data.type === 'empty') {
+        setAppToast(`NO RECORD FOUND FOR "${query.toUpperCase()}"`);
+      } else if (data.type === 'list') {
+        setGlobalResults(data);
+      } else if (data.type === 'match') {
+        // Open detail modal directly
+        setSelected(data.asteroid);
+      }
+    } catch (err) {
+      setAppToast(`NASA DATABASE SEARCH FAILED: ${err.message.toUpperCase()}`);
+    } finally {
+      setGlobalSearchLoading(false);
+    }
+  };
 
   const displayedAsteroids = useMemo(() => {
     let result = [...asteroids];
@@ -67,7 +98,36 @@ export default function App() {
           onSortChange={setSortMetric}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onGlobalSearch={handleGlobalSearch}
+          globalSearchLoading={globalSearchLoading}
         />
+
+        {globalResults && globalResults.type === 'list' && (
+          <div className="arcade-panel p-4 mb-8 bg-void border-edge select-none">
+            <div className="flex justify-between items-baseline mb-3 pb-1.5 border-b border-edge/30">
+              <h3 className="font-display text-xs text-signal glow-magenta uppercase">
+                {isArcadeTheme ? '[ GLOBAL CATALOG RESULTS - CHOOSE DESIGNATION ]' : 'GLOBAL CATALOG RESULTS - CHOOSE DESIGNATION'}
+              </h3>
+              <button 
+                onClick={() => setGlobalResults(null)}
+                className="font-mono text-xs hover:text-signal text-dim cursor-pointer"
+              >
+                {isArcadeTheme ? '[ CLEAR RESULTS ]' : '[ Clear ]'}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-48 overflow-y-auto">
+              {globalResults.results.map((item) => (
+                <button
+                  key={item.des}
+                  onClick={() => handleGlobalSearch(item.des)}
+                  className="bg-panel hover:bg-panel2 border border-edge text-left p-2 font-mono text-sm text-ink hover:text-signal transition-colors text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer select-none"
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <Hero asteroids={displayedAsteroids} loading={loading} isDemoData={isDemoData} isArcadeTheme={isArcadeTheme} />
         <OrbitalCanvas asteroids={displayedAsteroids} onSelect={setSelected} isArcadeTheme={isArcadeTheme} />
         <AsteroidList asteroids={displayedAsteroids} onSelect={setSelected} loading={loading} isArcadeTheme={isArcadeTheme} onFilterChange={setFilterRisk} />
@@ -77,7 +137,7 @@ export default function App() {
       <Footer />
 
       {selected && <DetailModal asteroid={selected} onClose={() => setSelected(null)} isArcadeTheme={isArcadeTheme} />}
-      <Toast message={toastMessage} onClose={clearToast} />
+      <Toast message={appToast || toastMessage} onClose={() => { setAppToast(null); clearToast(); }} />
     </div>
   );
 }

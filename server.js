@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import neoHandler from './api/neo.js';
 import fieldReportHandler from './api/field-report.js';
 import healthHandler from './api/health.js';
+import searchHandler from './api/search.js';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use((req, res, next) => {
 app.all('/api/neo', neoHandler);
 app.all('/api/field-report', fieldReportHandler);
 app.all('/api/health', healthHandler);
+app.all('/api/search', searchHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
