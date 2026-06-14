@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { RISK_META } from '../utils/risk';
 import LiveCounter from './LiveCounter';
 import SizeComparison from './SizeComparison';
+import { SIZE_REFERENCE_HEIGHTS, formatMeters } from '../utils/sizeLabel';
 
 const badgeColors = {
   hazardous: 'bg-hazardous/20 border-hazardous text-hazardous shadow-glow-hazardous',
@@ -25,7 +26,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   const [reportState, setReportState] = useState('loading');
   const [coords, setCoords] = useState(null);
   const [locating, setLocating] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [shareStatus, setShareStatus] = useState('idle');
   const [loadingProgress, setLoadingProgress] = useState(0);
   const controllerRef = useRef(null);
   const modalRef = useRef(null);
@@ -259,21 +260,326 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, reportState, coords]);
 
-  // Copy telemetry helper
-  function handleCopyTelemetry() {
-    const text = `NearMiss Telemetry Alert:
-Object: ${asteroid.name}
-Max Estimated Diameter: ${Math.round(asteroid.diameterMeters.max)} meters (${asteroid.sizeRef.label})
-Velocity: ${asteroid.velocityKmS.toFixed(2)} km/s
-Miss Distance: ${asteroid.missDistanceLD.toFixed(2)} LD (${Math.round(asteroid.missDistanceKm).toLocaleString()} km)
-Closest Contact: ${new Date(asteroid.approachEpoch).toLocaleString()}
-${report ? `AI Diagnostic: ${report}` : ''}
-Data sourced from NASA JPL.`;
+  // Helper to wrap text inside a canvas context
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+    
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        ctx.fillText(line, x, currentY);
+        line = words[n] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, currentY);
+  }
 
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  // Generates and shares/downloads a visual canvas card
+  function handleShareCard() {
+    setShareStatus('generating');
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+
+    const fontMono = 'IBM Plex Mono, Courier New, monospace';
+    const fontDisplay = isArcadeTheme ? 'VT323, monospace' : 'system-ui, sans-serif';
+    const fontHeading = isArcadeTheme ? 'Orbitron, sans-serif' : 'system-ui, sans-serif';
+
+    const themeColors = {
+      void: isArcadeTheme ? '#05050A' : '#0f172a',
+      panel: isArcadeTheme ? '#0C0C16' : '#1e293b',
+      edge: isArcadeTheme ? '#00F0FF' : '#475569',
+      ink: isArcadeTheme ? '#E0E8FF' : '#f8fafc',
+      dim: isArcadeTheme ? '#8ca3cb' : '#94a3b8',
+      signal: isArcadeTheme ? '#FF007F' : '#3b82f6',
+      hazardous: isArcadeTheme ? '#FF0055' : '#ef4444',
+      watch: isArcadeTheme ? '#FF8800' : '#f97316',
+      notable: isArcadeTheme ? '#FFD700' : '#eab308',
+      routine: isArcadeTheme ? '#00FF99' : '#22c55e',
+    };
+
+    // 1. Background Fill
+    ctx.fillStyle = themeColors.void;
+    ctx.fillRect(0, 0, 800, 600);
+
+    // 2. Vector Grid lines
+    ctx.strokeStyle = isArcadeTheme ? 'rgba(0, 240, 255, 0.05)' : 'rgba(71, 85, 105, 0.08)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= 800; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 600);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= 600; y += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(800, y);
+      ctx.stroke();
+    }
+
+    // 3. Panel Borders
+    ctx.strokeStyle = themeColors.edge;
+    if (isArcadeTheme) {
+      // Retro double border
+      ctx.lineWidth = 4;
+      ctx.strokeRect(15, 15, 770, 570);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(23, 23, 754, 554);
+    } else {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
+      ctx.strokeRect(15, 15, 770, 570);
+    }
+
+    // 4. Branding Header
+    ctx.fillStyle = themeColors.edge;
+    ctx.font = `10px ${fontMono}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('NEARMISS // PLANETARY DEFENSE TELEMETRY', 40, 55);
+
+    ctx.fillStyle = themeColors.dim;
+    ctx.font = `9px ${fontMono}`;
+    ctx.fillText(`SCAN EPOCH: ${new Date(asteroid.approachEpoch).toLocaleString().toUpperCase()}`, 40, 72);
+
+    // 5. Procedural Brand Logo
+    const cx = 720;
+    const cy = 65;
+    // Outer dashed ring
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
+
+    // Planet center
+    ctx.fillStyle = themeColors.signal;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Curved bezier path
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(cx - 50, cy + 15);
+    ctx.quadraticCurveTo(cx - 15, cy - 10, cx + 30, cy - 8);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Flying asteroid polygon
+    ctx.fillStyle = themeColors.hazardous;
+    ctx.beginPath();
+    ctx.moveTo(cx - 15 - 3, cy - 1 - 3);
+    ctx.lineTo(cx - 15 + 3, cy - 1 - 4);
+    ctx.lineTo(cx - 15 + 5, cy - 1 - 1);
+    ctx.lineTo(cx - 15 + 2, cy - 1 + 3);
+    ctx.lineTo(cx - 15 - 3, cy - 1 + 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // 6. Asteroid Name Title
+    ctx.fillStyle = themeColors.ink;
+    ctx.font = `bold 28px ${fontDisplay}`;
+    ctx.fillText(asteroid.name, 40, 115);
+
+    // Line below title
+    ctx.strokeStyle = isArcadeTheme ? themeColors.signal : 'rgba(71, 85, 105, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(40, 130);
+    ctx.lineTo(760, 130);
+    ctx.stroke();
+
+    // 7. Mass Comparative Scanner Box
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(40, 150, 720, 235);
+    
+    ctx.fillStyle = themeColors.signal;
+    ctx.font = `10px ${fontMono}`;
+    ctx.fillText('MASS COMPARATIVE SCANNER', 55, 172);
+
+    // Bars comparative math
+    const objectSize = asteroid.diameterMeters.max;
+    const refHeight = SIZE_REFERENCE_HEIGHTS[asteroid.sizeRef.label] || 10;
+    const human = 1.7;
+    const maxVal = Math.max(objectSize, refHeight, human) * 1.05;
+
+    const bars = [
+      { key: 'human', label: 'YOU', value: human, emoji: '\u{1F9CD}' },
+      { key: 'ref', label: asteroid.sizeRef.label.toUpperCase(), value: refHeight, emoji: asteroid.sizeRef.emoji },
+      { key: 'object', label: asteroid.name.toUpperCase(), value: objectSize, emoji: '\u2604\uFE0F' },
+    ];
+
+    const colX = [180, 400, 620];
+    const colBottom = 330;
+
+    bars.forEach((b, idx) => {
+      const isObject = b.key === 'object';
+      const isHuman = b.key === 'human';
+      
+      const x = colX[idx];
+      const h = (Math.log10(b.value + 1) / Math.log10(maxVal + 1)) * 110;
+      
+      // Draw Gradient fill
+      const grad = ctx.createLinearGradient(x, colBottom - h, x, colBottom);
+      if (isObject) {
+        grad.addColorStop(0, 'rgba(255, 0, 85, 0.8)');
+        grad.addColorStop(1, 'rgba(255, 0, 85, 0.15)');
+        ctx.strokeStyle = themeColors.hazardous;
+      } else if (isHuman) {
+        grad.addColorStop(0, 'rgba(71, 85, 105, 0.8)');
+        grad.addColorStop(1, 'rgba(71, 85, 105, 0.15)');
+        ctx.strokeStyle = themeColors.edge;
+      } else {
+        grad.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+        grad.addColorStop(1, 'rgba(255, 215, 0, 0.15)');
+        ctx.strokeStyle = themeColors.notable;
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - 25, colBottom - h, 50, h);
+      ctx.strokeRect(x - 25, colBottom - h, 50, h);
+
+      // Value text above bar
+      ctx.fillStyle = themeColors.dim;
+      ctx.font = `11px ${fontMono}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(formatMeters(b.value), x, colBottom - h - 8);
+
+      // Label below bar
+      ctx.fillStyle = themeColors.ink;
+      ctx.font = `bold 9px ${fontMono}`;
+      
+      // Wrap long labels to fit inside column alignment
+      let labelText = b.label;
+      if (labelText.length > 25) {
+        labelText = labelText.substring(0, 22) + '...';
+      }
+      ctx.fillText(labelText, x, colBottom + 32);
+
+      // Emoji above label
+      ctx.font = `14px Arial, sans-serif`;
+      ctx.fillText(b.emoji, x, colBottom + 18);
     });
+
+    // 8. AI Diagnostic Report Box
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(40, 400, 720, 125);
+
+    ctx.fillStyle = themeColors.signal;
+    ctx.font = `10px ${fontMono}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('AI DIAGNOSTIC REPORT', 55, 422);
+
+    // Extraction of one sentence
+    let aiSentence = '';
+    if (report) {
+      const match = report.match(/[^.!?]+[.!?]/);
+      aiSentence = match ? match[0].trim() : report;
+    } else {
+      aiSentence = `PLANETARY SCAN: Object ${asteroid.name} is traveling at ${asteroid.velocityKmS.toFixed(2)} km/s and will safely pass Earth at a miss distance of ${asteroid.missDistanceLD.toFixed(2)} Lunar Distances (LD).`;
+    }
+    if (isArcadeTheme) {
+      aiSentence = `> ${aiSentence.toUpperCase()}`;
+    }
+
+    ctx.fillStyle = themeColors.ink;
+    ctx.font = `13px ${fontMono}`;
+    wrapText(ctx, aiSentence, 55, 452, 690, 20);
+
+    // 9. Watermark Footer
+    ctx.fillStyle = themeColors.dim;
+    ctx.font = `9px ${fontMono}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('GENERATED AT NEARMISS.APP // COGNITIVE REPORT DATA VIA NASA JPL', 400, 565);
+
+    // Revoke & Trigger download
+    function triggerDownload(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nearmiss-scan-${asteroid.name.replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setShareStatus('downloaded');
+      setTimeout(() => setShareStatus('idle'), 2000);
+    }
+
+    // Convert canvas to png blob
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setShareStatus('error');
+        setTimeout(() => setShareStatus('idle'), 2000);
+        return;
+      }
+
+      const file = new File([blob], `nearmiss-scan-${asteroid.name.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+
+      // Try native Share API
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: `NearMiss Scan: ${asteroid.name}`,
+          text: `Check out this planetary defense telemetry for asteroid ${asteroid.name}!`,
+        })
+        .then(() => {
+          setShareStatus('downloaded');
+          setTimeout(() => setShareStatus('idle'), 2000);
+        })
+        .catch((err) => {
+          if (err.name !== 'AbortError') {
+            triggerDownload(blob);
+          } else {
+            setShareStatus('idle');
+          }
+        });
+      } else {
+        // Safe check for ClipboardItem and clipboard write compatibility to prevent ReferenceErrors in headless test runs or unsupported browsers
+        let isClipboardImageSupported = false;
+        try {
+          isClipboardImageSupported = (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write);
+        } catch (e) {
+          console.warn('> Clipboard image support check failed:', e);
+        }
+
+        if (isClipboardImageSupported) {
+          try {
+            navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ])
+            .then(() => {
+              setShareStatus('copied');
+              triggerDownload(blob);
+            })
+            .catch((err) => {
+              console.warn('> Clipboard write promise failed, falling back to download:', err);
+              triggerDownload(blob);
+            });
+          } catch (err) {
+            console.warn('> Clipboard write sync failed, falling back to download:', err);
+            triggerDownload(blob);
+          }
+        } else {
+          triggerDownload(blob);
+        }
+      }
+    }, 'image/png');
   }
 
   const meta = RISK_META[asteroid.riskLevel];
@@ -452,10 +758,15 @@ Data sourced from NASA JPL.`;
 
         <div className="mt-5 flex justify-between items-center gap-4">
           <button
-            onClick={handleCopyTelemetry}
-            className="bg-void border border-edge hover:border-signal text-edge hover:text-signal px-3 py-1 font-display text-[9px] cursor-pointer select-none transition-colors"
+            onClick={handleShareCard}
+            disabled={shareStatus !== 'idle'}
+            className="bg-void border border-edge hover:border-signal disabled:border-edge/50 disabled:text-edge/50 text-edge hover:text-signal px-3 py-1 font-display text-[9px] cursor-pointer select-none transition-colors"
           >
-            {copied ? '[ TELEMETRY COPIED ]' : (isArcadeTheme ? '[ SHARE TELEMETRY ]' : 'SHARE TELEMETRY')}
+            {shareStatus === 'generating' ? (isArcadeTheme ? '[ GENERATING... ]' : 'GENERATING...') :
+             shareStatus === 'copied' ? (isArcadeTheme ? '[ CARD COPIED ]' : 'CARD COPIED!') :
+             shareStatus === 'downloaded' ? (isArcadeTheme ? '[ DOWNLOADED ]' : 'DOWNLOADED!') :
+             shareStatus === 'error' ? (isArcadeTheme ? '[ ERROR RETRY ]' : 'ERROR, RETRY') :
+             (isArcadeTheme ? '[ SHARE TELEMETRY ]' : 'SHARE TELEMETRY')}
           </button>
           
           {asteroid.jplUrl && asteroid.jplUrl !== '#' && (

@@ -3,6 +3,7 @@ import { Calendar, Filter, ArrowUpDown } from 'lucide-react';
 export default function Controls({
   selectedDate,
   onDateChange,
+  onResetToday,
   filterRisk,
   onFilterChange,
   sortMetric,
@@ -71,7 +72,7 @@ export default function Controls({
               className="bg-void border-2 border-edge text-ink text-sm px-3 py-1.5 focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal flex-1 w-full font-mono select-text"
             />
             <button
-              onClick={() => onDateChange(new Date().toISOString().slice(0, 10))}
+              onClick={onResetToday}
               className="btn-today"
               title="Reset to today"
             >

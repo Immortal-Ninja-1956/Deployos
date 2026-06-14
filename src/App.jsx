@@ -57,6 +57,12 @@ export default function App() {
     }
   };
 
+  const handleResetToday = () => {
+    setSelectedDate(new Date().toISOString().slice(0, 10));
+    setSearchQuery('');
+    setGlobalResults(null);
+  };
+
   const displayedAsteroids = useMemo(() => {
     let result = [...asteroids];
 
@@ -85,13 +91,14 @@ export default function App() {
       <div className="starfield" aria-hidden="true" />
       <div className="vector-grid" aria-hidden="true" />
 
-      <DisclaimerBanner />
+      <DisclaimerBanner isArcadeTheme={isArcadeTheme} />
 
       <main className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <Header isArcadeTheme={isArcadeTheme} onToggleTheme={() => setIsArcadeTheme(!isArcadeTheme)} />
         <Controls
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
+          onResetToday={handleResetToday}
           filterRisk={filterRisk}
           onFilterChange={setFilterRisk}
           sortMetric={sortMetric}
