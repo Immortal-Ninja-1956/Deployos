@@ -7,6 +7,7 @@ import AsteroidList from './components/AsteroidList';
 import Controls from './components/Controls';
 import DetailModal from './components/DetailModal';
 import HistoricalContext from './components/HistoricalContext';
+import APODWidget from './components/APODWidget';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
 import { useAsteroidFeed } from './hooks/useAsteroidFeed';
@@ -18,7 +19,7 @@ export default function App() {
   const [sortMetric, setSortMetric] = useState('distance');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { asteroids, loading, isDemoData, toastMessage, clearToast } = useAsteroidFeed(selectedDate);
+  const { asteroids, prevAsteroids, loading, isDemoData, toastMessage, clearToast } = useAsteroidFeed(selectedDate);
   const [selected, setSelected] = useState(null);
 
   const [globalResults, setGlobalResults] = useState(null);
@@ -135,15 +136,36 @@ export default function App() {
             </div>
           </div>
         )}
-        <Hero asteroids={displayedAsteroids} loading={loading} isDemoData={isDemoData} isArcadeTheme={isArcadeTheme} />
+        <Hero 
+          asteroids={displayedAsteroids} 
+          allCurrentAsteroids={asteroids}
+          prevAsteroids={prevAsteroids}
+          selectedDate={selectedDate}
+          onSelect={setSelected}
+          loading={loading} 
+          isDemoData={isDemoData} 
+          isArcadeTheme={isArcadeTheme} 
+        />
         <OrbitalCanvas asteroids={displayedAsteroids} onSelect={setSelected} isArcadeTheme={isArcadeTheme} />
         <AsteroidList asteroids={displayedAsteroids} onSelect={setSelected} loading={loading} isArcadeTheme={isArcadeTheme} onFilterChange={setFilterRisk} />
+        <APODWidget isArcadeTheme={isArcadeTheme} />
         <HistoricalContext isArcadeTheme={isArcadeTheme} />
       </main>
 
       <Footer />
 
-      {selected && <DetailModal asteroid={selected} onClose={() => setSelected(null)} isArcadeTheme={isArcadeTheme} />}
+      {selected && (() => {
+        const selectedIndex = displayedAsteroids.findIndex((a) => a.id === selected.id);
+        return (
+          <DetailModal 
+            asteroid={selected} 
+            onClose={() => setSelected(null)} 
+            isArcadeTheme={isArcadeTheme} 
+            onNext={selectedIndex !== -1 && selectedIndex < displayedAsteroids.length - 1 ? () => setSelected(displayedAsteroids[selectedIndex + 1]) : null}
+            onPrev={selectedIndex !== -1 && selectedIndex > 0 ? () => setSelected(displayedAsteroids[selectedIndex - 1]) : null}
+          />
+        );
+      })()}
       <Toast message={appToast || toastMessage} onClose={() => { setAppToast(null); clearToast(); }} />
     </div>
   );

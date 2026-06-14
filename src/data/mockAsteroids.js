@@ -10,8 +10,8 @@ const LD_KM = 384400;
  * Shape matches the normalized output of api/_lib/normalize.js exactly,
  * minus risk/sizeRef, which App.jsx computes for both real and mock data.
  */
-export function getMockAsteroids() {
-  const now = Date.now();
+export function getMockAsteroids(baseDateStr = null) {
+  const now = baseDateStr ? new Date(baseDateStr).getTime() : Date.now();
   const HOUR = 3.6e6;
   const DAY = 24 * HOUR;
 

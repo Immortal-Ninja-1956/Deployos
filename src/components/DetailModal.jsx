@@ -3,6 +3,7 @@ import { RISK_META } from '../utils/risk';
 import LiveCounter from './LiveCounter';
 import SizeComparison from './SizeComparison';
 import { SIZE_REFERENCE_HEIGHTS, formatMeters } from '../utils/sizeLabel';
+import { findNearestHistoricalEvent } from '../utils/historicalEvents';
 
 const badgeColors = {
   hazardous: 'bg-hazardous/20 border-hazardous text-hazardous shadow-glow-hazardous',
@@ -11,16 +12,18 @@ const badgeColors = {
   routine: 'bg-routine/20 border-routine text-routine shadow-glow-routine',
 };
 
-function Stat({ label, value, title }) {
+function Stat({ label, value, subtext, title }) {
   return (
     <div className="border border-edge bg-void/50 p-3 select-none" title={title}>
       <p className="text-[10px] font-mono uppercase text-cyan-400 glow-cyan">{label}</p>
-      <p className="text-ink mt-1.5 font-mono text-lg font-bold">{value}</p>
+      <p className="text-ink mt-1.5 font-mono text-lg font-bold leading-none">{value}</p>
+      {subtext && <p className="text-[9px] text-dim font-mono mt-1 uppercase tracking-wider">{subtext}</p>}
     </div>
   );
 }
 
-export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
+export default function DetailModal({ asteroid, onClose, isArcadeTheme, onNext, onPrev }) {
+  const nearestHistorical = findNearestHistoricalEvent(asteroid.diameterMeters.max);
   const [report, setReport] = useState(null);
   const [reportNote, setReportNote] = useState(null);
   const [reportState, setReportState] = useState('loading');
@@ -228,6 +231,10 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     function onKey(e) {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'ArrowLeft' && onPrev) {
+        onPrev();
+      } else if (e.key === 'ArrowRight' && onNext) {
+        onNext();
       } else if ((e.key === 'r' || e.key === 'R') && reportState === 'unavailable') {
         fetchReport(coords);
       }
@@ -258,7 +265,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, reportState, coords]);
+  }, [onClose, reportState, coords, onNext, onPrev]);
 
   // Helper to wrap text inside a canvas context
   function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
@@ -602,6 +609,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     >
       <div
         ref={modalRef}
+        key={asteroid.id}
         className={`w-full sm:max-w-lg max-h-[85vh] overflow-y-auto p-5 sm:p-6 animate-fade-in ${panelClass}`}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
@@ -615,13 +623,39 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
             </span>
             <h2 className="font-arcade text-2xl text-ink font-bold tracking-wide uppercase mt-3">{asteroid.name}</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="bg-void border-2 border-edge text-edge hover:border-signal hover:text-signal px-2 py-1 font-display text-[9px] cursor-pointer select-none"
-            aria-label="Close details"
-          >
-            {isArcadeTheme ? '[ X ]' : 'X'}
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {/* Prev button */}
+            <button
+              onClick={onPrev}
+              disabled={!onPrev}
+              className={`bg-void border-2 ${onPrev ? 'border-edge text-ink hover:border-signal hover:text-signal cursor-pointer' : 'border-edge/20 text-edge/20 cursor-not-allowed'} px-2 py-1 font-mono text-[9px] select-none`}
+              title="Previous Asteroid (Left Arrow)"
+              aria-label="Previous asteroid"
+            >
+              {isArcadeTheme ? '[ < ]' : '◀'}
+            </button>
+
+            {/* Next button */}
+            <button
+              onClick={onNext}
+              disabled={!onNext}
+              className={`bg-void border-2 ${onNext ? 'border-edge text-ink hover:border-signal hover:text-signal cursor-pointer' : 'border-edge/20 text-edge/20 cursor-not-allowed'} px-2 py-1 font-mono text-[9px] select-none`}
+              title="Next Asteroid (Right Arrow)"
+              aria-label="Next asteroid"
+            >
+              {isArcadeTheme ? '[ > ]' : '▶'}
+            </button>
+
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="bg-void border-2 border-edge text-edge hover:border-signal hover:text-signal px-2 py-1 font-display text-[9px] cursor-pointer select-none"
+              aria-label="Close details"
+            >
+              {isArcadeTheme ? '[ X ]' : 'X'}
+            </button>
+          </div>
         </div>
 
         {/* Telemetry card */}
@@ -644,7 +678,11 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
         <div className="grid grid-cols-2 gap-3 mb-4 select-none">
           <Stat label="EST DIAMETER" value={`${Math.round(asteroid.diameterMeters.min)}\u2013${Math.round(asteroid.diameterMeters.max)} M`} />
           <Stat label="VELOCITY" value={`${asteroid.velocityKmS.toFixed(2)} KM/S`} />
-          <Stat label="MISS DISTANCE" value={`${asteroid.missDistanceLD.toFixed(2)} LD`} />
+          <Stat 
+            label="MISS DISTANCE" 
+            value={`${asteroid.missDistanceLD.toFixed(2)} LD`} 
+            subtext="1 LD ~ 384,400 KM" 
+          />
           <Stat label="IN KILOMETERS" value={`${Math.round(asteroid.missDistanceKm).toLocaleString()} KM`} />
           <Stat
             label="CLOSEST CONTACT"
@@ -655,7 +693,28 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
               minute: '2-digit',
             }).toUpperCase()}
           />
-          <Stat label="BRIGHTNESS (H)" value={asteroid.absoluteMagnitude?.toFixed(1) ?? '\u2014'} title="Lower H = larger object. H<18 is city-block scale." />
+          <Stat 
+            label="BRIGHTNESS (H)" 
+            value={asteroid.absoluteMagnitude?.toFixed(1) ?? '\u2014'} 
+            subtext="LOWER = LARGER/BRIGHTER"
+            title="Lower H = larger object. H<18 is city-block scale." 
+          />
+        </div>
+
+        {/* Historical Impact Analogue */}
+        <div className="border border-edge bg-void/60 p-4 mb-4 select-none">
+          <p className="font-display text-[10px] uppercase text-cyan-400 glow-cyan mb-2">
+            {isArcadeTheme ? '[ HISTORICAL IMPACT ANALOGUE ]' : 'HISTORICAL IMPACT ANALOGUE'}
+          </p>
+          <div className="font-mono text-xs text-dim leading-relaxed">
+            <div className="flex justify-between items-baseline mb-2 pb-1 border-b border-edge/10">
+              <span className="text-ink font-bold uppercase">{nearestHistorical.name}</span>
+              <span className="text-signal font-bold">{nearestHistorical.year} ({nearestHistorical.size})</span>
+            </div>
+            <p className="text-ink/85 text-xs sm:text-sm font-mono mt-1">
+              {isArcadeTheme ? nearestHistorical.detail.toUpperCase() : nearestHistorical.detail}
+            </p>
+          </div>
         </div>
 
         {/* AI Report / Diagnostic */}
@@ -699,12 +758,18 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
               </div>
               {reportNote !== 'TIMEOUT' && (
                 <p className="text-xs text-dim">
-                  SET <code className="font-mono text-signal">GEMINI_API_KEY</code> ENVDETAILS TO CONNECT.
+                  {isArcadeTheme 
+                    ? 'PROVIDE CLOUD COGNITIVE CREDENTIALS IN SERVER ENVIRONMENT TO ENABLE REPORTS.' 
+                    : 'Provide cloud cognitive credentials in the server environment to enable live reports.'}
                 </p>
               )}
               {reportNote && reportNote !== 'TIMEOUT' && (
-                <p className="text-xs bg-void/80 p-2 border border-edge font-mono text-rose-500 max-h-32 overflow-y-auto">
-                  CODE: {reportNote.toUpperCase()}
+                <p className="text-xs bg-void/80 p-2 border border-edge font-mono text-rose-500 max-h-32 overflow-y-auto uppercase">
+                  STATUS: {
+                    reportNote.toLowerCase().includes('gemini_api_key') || reportNote.toLowerCase().includes('not configured')
+                      ? (isArcadeTheme ? 'COGNITIVE CREDENTIALS MISSING' : 'Cognitive credentials missing')
+                      : (isArcadeTheme ? `RELAY ERROR (${reportNote.toUpperCase()})` : `Relay error (${reportNote})`)
+                  }
                 </p>
               )}
               <div className="mt-2.5">

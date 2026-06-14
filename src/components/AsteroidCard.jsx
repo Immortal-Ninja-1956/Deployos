@@ -25,7 +25,7 @@ export default function AsteroidCard({ asteroid, onSelect, isArcadeTheme }) {
   return (
     <button
       onClick={() => onSelect(asteroid)}
-      className={`group flex items-center justify-between gap-4 transition-all duration-100 px-4 py-3 sm:px-5 sm:py-4 text-left w-full hover:scale-[1.01] active:scale-[0.99] ${panelClass}`}
+      className={`group flex items-center justify-between gap-4 transition-all duration-100 px-4 py-5 sm:px-5 sm:py-6 min-h-[80px] text-left w-full hover:scale-[1.01] active:scale-[0.99] ${panelClass}`}
     >
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <span
@@ -34,9 +34,11 @@ export default function AsteroidCard({ asteroid, onSelect, isArcadeTheme }) {
         />
         <div className="min-w-0">
           <p className="font-arcade text-base sm:text-lg text-ink font-bold tracking-wide truncate uppercase">{asteroid.name}</p>
-          <p className="font-mono text-sm text-dim mt-0.5 truncate">
-            SIZE COMP: {asteroid.sizeRef.label.toUpperCase()} &middot; RANGE: {asteroid.missDistanceLD.toFixed(1)} LD &middot;{' '}
-            {timeLabel(asteroid.approachEpoch, now).toUpperCase()}
+          <p className="font-mono text-xs text-dim mt-1 leading-normal">
+            SIZE: {asteroid.sizeRef.label.toUpperCase()}
+          </p>
+          <p className="font-mono text-[11px] text-dim/80 mt-0.5 leading-normal">
+            RANGE: {asteroid.missDistanceLD.toFixed(1)} LD &middot; {timeLabel(asteroid.approachEpoch, now).toUpperCase()}
           </p>
         </div>
       </div>
