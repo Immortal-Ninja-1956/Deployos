@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import neoHandler from './api/neo.js';
 import fieldReportHandler from './api/field-report.js';
+import healthHandler from './api/health.js';
 
 dotenv.config();
 
@@ -29,11 +30,7 @@ app.use((req, res, next) => {
 // Expose the API endpoints
 app.all('/api/neo', neoHandler);
 app.all('/api/field-report', fieldReportHandler);
-
-// Basic health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
+app.all('/api/health', healthHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

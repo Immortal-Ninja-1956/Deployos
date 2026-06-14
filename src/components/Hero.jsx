@@ -98,7 +98,7 @@ export default function Hero({ asteroids, loading, isDemoData, isArcadeTheme }) 
           <h2 className="font-arcade text-2xl text-ink font-bold mb-1 tracking-wide uppercase">{nearest.name}</h2>
           <p className="text-dim text-sm mb-4 font-mono">
             SIZE COMP: {nearest.sizeRef.label.toUpperCase()} {nearest.sizeRef.emoji} &middot;{' '}
-            MISS DIST: {nearest.missDistanceLD.toFixed(1)} LD
+            MISS DIST: {nearest.missDistanceLD.toFixed(1)} LD <span className="text-[10px] text-dim/60 font-mono font-normal">{isArcadeTheme ? '(1 LD = 384,400 KM)' : '(1 LD = 384,400 km)'}</span>
           </p>
 
           <LiveCounter asteroid={nearest} />

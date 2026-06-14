@@ -5,7 +5,7 @@ import { useLiveTime } from '../hooks/useLiveTime';
 const badgeColors = {
   hazardous: 'bg-hazardous/20 border-hazardous text-hazardous shadow-glow-hazardous',
   watch: 'bg-watch/20 border-watch text-watch shadow-glow-watch',
-  notable: 'bg-notable/20 border-notable text-notable shadow-glow-notable',
+  notable: 'bg-notable border-notable text-void font-bold shadow-glow-notable',
   routine: 'bg-routine/20 border-routine text-routine shadow-glow-routine',
 };
 
@@ -43,7 +43,7 @@ export default function AsteroidCard({ asteroid, onSelect, isArcadeTheme }) {
 
       <div className="flex items-center gap-3 shrink-0 select-none">
         <span
-          className={`font-arcade text-[9px] px-2 py-0.5 border hidden sm:inline-block ${badgeClass}`}
+          className={`font-mono text-[9px] px-2 py-0.5 border hidden sm:inline-block ${badgeClass}`}
         >
           {meta.label.toUpperCase()}
         </span>

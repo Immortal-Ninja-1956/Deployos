@@ -22,6 +22,50 @@ Asteroid data:
 ${JSON.stringify(asteroid)}`;
 }
 
+const ipRequests = new Map();
+let globalRequests = [];
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const MAX_REQUESTS_PER_IP = 10;
+const MIN_REQUEST_INTERVAL = 1500; // 1.5 seconds
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  
+  // Clean up memory if Map grows too large
+  if (ipRequests.size > 1000) {
+    ipRequests.clear();
+  }
+
+  // Clean up global requests
+  globalRequests = globalRequests.filter(t => now - t < RATE_LIMIT_WINDOW);
+  if (globalRequests.length >= 30) {
+    return { limited: true, reason: 'GLOBAL_LIMIT_EXCEEDED' };
+  }
+
+  // Clean up IP requests
+  if (!ipRequests.has(ip)) {
+    ipRequests.set(ip, []);
+  }
+  let timestamps = ipRequests.get(ip);
+  timestamps = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+  ipRequests.set(ip, timestamps);
+
+  // Check minimum interval from the same IP
+  if (timestamps.length > 0 && (now - timestamps[timestamps.length - 1] < MIN_REQUEST_INTERVAL)) {
+    return { limited: true, reason: 'TOO_FAST' };
+  }
+
+  // Check max per minute
+  if (timestamps.length >= MAX_REQUESTS_PER_IP) {
+    return { limited: true, reason: 'RATE_LIMIT_EXCEEDED' };
+  }
+
+  // Record request
+  timestamps.push(now);
+  globalRequests.push(now);
+  return { limited: false };
+}
+
 export default async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -30,6 +74,19 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Apply rate limiting
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'global';
+  const rateLimitStatus = checkRateLimit(ip);
+  if (rateLimitStatus.limited) {
+    res.setHeader('Retry-After', '2');
+    return res.status(429).json({
+      error: 'RATE_LIMIT_EXCEEDED',
+      message: rateLimitStatus.reason === 'TOO_FAST' 
+        ? 'Please wait a moment before requesting another report.' 
+        : 'Rate limit exceeded. Please try again in a minute.'
+    });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;

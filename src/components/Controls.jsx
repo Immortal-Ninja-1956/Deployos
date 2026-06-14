@@ -64,7 +64,7 @@ export default function Controls({
       </div>
 
       {/* Select Controls Row */}
-      <div className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto flex-1 sm:flex-none">
+      <div className="flex flex-row gap-4 w-full sm:w-auto sm:gap-6 flex-1 sm:flex-none">
         {/* Risk Filter */}
         <div className="flex-1 sm:w-48">
           <label htmlFor="risk-filter-select" className="flex items-center gap-2 text-xs font-display uppercase text-cyan-400 mb-2 glow-cyan">

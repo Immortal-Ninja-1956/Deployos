@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import DisclaimerBanner from './components/DisclaimerBanner';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -20,6 +20,11 @@ export default function App() {
 
   const { asteroids, loading, isDemoData, toastMessage, clearToast } = useAsteroidFeed(selectedDate);
   const [selected, setSelected] = useState(null);
+
+  // Close the detail modal when the date changes to prevent viewing stale data
+  useEffect(() => {
+    setSelected(null);
+  }, [selectedDate]);
 
   const displayedAsteroids = useMemo(() => {
     let result = [...asteroids];

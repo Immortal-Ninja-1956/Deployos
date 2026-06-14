@@ -22,7 +22,7 @@
   --font-body: system-ui, -apple-system, sans-serif;
   --font-display: system-ui, -apple-system, sans-serif;
   --font-arcade: system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 .theme-arcade {
@@ -45,7 +45,7 @@
   --font-body: "VT323", monospace;
   --font-display: "VT323", monospace;
   --font-arcade: "Orbitron", sans-serif;
-  --font-mono: "VT323", monospace;
+  --font-mono: "IBM Plex Mono", monospace;
 
   font-size: 20px;
   line-height: 1.25;

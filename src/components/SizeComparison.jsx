@@ -27,7 +27,7 @@ export default function SizeComparison({ asteroid }) {
             <div
               className={`w-8 sm:w-12 border-2 bg-gradient-to-t ${colorClass}`}
               style={{ 
-                height: `${Math.max(4, (Math.log10(b.value + 1) / Math.log10(maxVal + 1)) * 100)}%`
+                height: `${Math.max(12, (Math.log10(b.value + 1) / Math.log10(maxVal + 1)) * 100)}%`
               }}
               aria-hidden="true"
             />

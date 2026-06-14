@@ -6,14 +6,14 @@ import SizeComparison from './SizeComparison';
 const badgeColors = {
   hazardous: 'bg-hazardous/20 border-hazardous text-hazardous shadow-glow-hazardous',
   watch: 'bg-watch/20 border-watch text-watch shadow-glow-watch',
-  notable: 'bg-notable/20 border-notable text-notable shadow-glow-notable',
+  notable: 'bg-notable border-notable text-void font-bold shadow-glow-notable',
   routine: 'bg-routine/20 border-routine text-routine shadow-glow-routine',
 };
 
-function Stat({ label, value }) {
+function Stat({ label, value, title }) {
   return (
-    <div className="border border-edge bg-void/50 p-3 select-none">
-      <p className="text-[10px] font-display uppercase text-cyan-400 glow-cyan">{label}</p>
+    <div className="border border-edge bg-void/50 p-3 select-none" title={title}>
+      <p className="text-[10px] font-mono uppercase text-cyan-400 glow-cyan">{label}</p>
       <p className="text-ink mt-1.5 font-mono text-lg font-bold">{value}</p>
     </div>
   );
@@ -26,12 +26,59 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
   const [coords, setCoords] = useState(null);
   const [locating, setLocating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const controllerRef = useRef(null);
   const modalRef = useRef(null);
   const previousActiveElementRef = useRef(null);
 
-  const fetchReport = (userCoords = null) => {
+  const lastFetchedAsteroidIdRef = useRef(null);
+  const isFetchingRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const debounceTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    let intervalId;
+    if (reportState === 'loading') {
+      setLoadingProgress(0);
+      intervalId = setInterval(() => {
+        setLoadingProgress((p) => {
+          if (p >= 100) {
+            clearInterval(intervalId);
+            return 100;
+          }
+          return p + 1;
+        });
+      }, 100);
+    } else {
+      setLoadingProgress(0);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [reportState]);
+
+  const fetchReport = (userCoords = null, force = false) => {
     const requestId = asteroid.id;
+    const now = Date.now();
+
+    // 1. In-flight lock: block duplicate fetches for the same asteroid unless forced
+    if (isFetchingRef.current && lastFetchedAsteroidIdRef.current === asteroid.id && !force) {
+      console.log('> Duplicate fetch request locked (in-flight)');
+      return;
+    }
+
+    // 2. Throttle manual retries (minimum 2 seconds between manual/retry requests)
+    if (!force && lastFetchedAsteroidIdRef.current === asteroid.id && now - lastFetchTimeRef.current < 2000) {
+      console.log('> Duplicate fetch request throttled (too fast)');
+      return;
+    }
+
+    lastFetchTimeRef.current = now;
+    isFetchingRef.current = true;
+    lastFetchedAsteroidIdRef.current = asteroid.id;
+
     if (controllerRef.current) {
       controllerRef.current.abort();
     }
@@ -66,14 +113,24 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
     Promise.race([fetchPromise, timeoutPromise])
       .then((res) => {
         clearTimeout(timeoutId);
-        if (requestId !== asteroid.id) return null;
+        if (requestId !== asteroid.id) {
+          isFetchingRef.current = false;
+          return null;
+        }
         if (!res.ok) {
+          if (res.status === 429) {
+            return res.json().then((body) => {
+              throw new Error(body.message || 'RATE_LIMIT_EXCEEDED');
+            });
+          }
           throw new Error(`HTTP_${res.status}`);
         }
         return res.json();
       })
       .then((data) => {
-        if (!data || requestId !== asteroid.id) return;
+        if (requestId !== asteroid.id) return;
+        isFetchingRef.current = false;
+        if (!data) return;
         if (data.report) {
           setReport(data.report);
           setReportState('done');
@@ -86,6 +143,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
         clearTimeout(timeoutId);
         controller.abort();
         if (requestId !== asteroid.id) return;
+        isFetchingRef.current = false;
         if (err.name === 'AbortError' || err.message === 'TIMEOUT') {
           setReportNote('TIMEOUT');
         } else {
@@ -120,8 +178,21 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
 
   useEffect(() => {
     setCoords(null);
-    fetchReport(null);
+    
+    // Clear any pending debounced fetch
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Debounce initial fetch on asteroid switch to prevent rapid selection quota drain
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchReport(null);
+    }, 350);
+
     return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
       if (controllerRef.current) {
         controllerRef.current.abort();
       }
@@ -142,7 +213,7 @@ export default function DetailModal({ asteroid, onClose, isArcadeTheme }) {
         };
         setCoords(newCoords);
         setLocating(false);
-        fetchReport(newCoords);
+        fetchReport(newCoords, true); // Force geolocation updates to bypass debounce/throttle
       },
       (error) => {
         setLocating(false);
@@ -217,6 +288,7 @@ Data sourced from NASA JPL.`;
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-void/85 backdrop-blur-sm px-4"
+      style={{ height: '100dvh', paddingTop: 'env(safe-area-inset-top)' }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -231,7 +303,7 @@ Data sourced from NASA JPL.`;
         <div className="flex items-start justify-between mb-4 border-b border-edge/30 pb-3">
           <div>
             <span
-              className={`font-display text-[9px] px-2 py-0.5 border ${badgeColors[asteroid.riskLevel] || badgeColors.routine}`}
+              className={`font-mono text-[9px] px-2 py-0.5 border ${badgeColors[asteroid.riskLevel] || badgeColors.routine}`}
             >
               {meta.label.toUpperCase()}
             </span>
@@ -277,7 +349,7 @@ Data sourced from NASA JPL.`;
               minute: '2-digit',
             }).toUpperCase()}
           />
-          <Stat label="ABS MAGNITUDE" value={asteroid.absoluteMagnitude?.toFixed(1) ?? '\u2014'} />
+          <Stat label="BRIGHTNESS (H)" value={asteroid.absoluteMagnitude?.toFixed(1) ?? '\u2014'} title="Lower H = larger object. H<18 is city-block scale." />
         </div>
 
         {/* AI Report / Diagnostic */}
@@ -286,9 +358,19 @@ Data sourced from NASA JPL.`;
             AI DIAGNOSTIC REPORT
           </p>
           {reportState === 'loading' && (
-            <p className="text-dim text-sm animate-pulse font-mono">
-              {isArcadeTheme ? '> COMPILING SENSOR DATA READOUT...' : 'Compiling sensor data readout...'}
-            </p>
+            <div className="space-y-2 font-mono select-none">
+              <p className="text-dim text-sm animate-pulse">
+                {isArcadeTheme 
+                  ? `> COMPILING SENSOR DATA READOUT... ${(loadingProgress / 10).toFixed(1)}S` 
+                  : `Compiling sensor data readout... ${(loadingProgress / 10).toFixed(1)}s`}
+              </p>
+              <div className="w-full bg-void border border-edge h-2 overflow-hidden relative">
+                <div 
+                  className="bg-cyan-400 h-full transition-all duration-100 ease-linear shadow-glow-cyan" 
+                  style={{ width: `${loadingProgress}%` }}
+                />
+              </div>
+            </div>
           )}
           {reportState === 'done' && (
             <p className="text-ink/90 text-sm leading-relaxed font-mono font-bold">
@@ -297,13 +379,18 @@ Data sourced from NASA JPL.`;
           )}
           {reportState === 'unavailable' && (
             <div className="text-dim text-sm leading-relaxed space-y-2 font-mono">
-              <p>
-                {reportNote === 'TIMEOUT' ? (
-                  isArcadeTheme ? '> SENSOR TIMEOUT — RETRY WITH [R]' : 'Sensor timeout — retry with [R]'
-                ) : (
-                  isArcadeTheme ? '> ERROR: AI COGNITIVE SUBSYSTEM OFFLINE.' : 'Error: AI cognitive subsystem offline.'
-                )}
-              </p>
+              <div>
+                <p>
+                  {reportNote === 'TIMEOUT' ? (
+                    isArcadeTheme ? '> SENSOR TIMEOUT — RETRY WITH [R]' : 'Sensor timeout — retry with [R]'
+                  ) : (
+                    isArcadeTheme ? '> ERROR: AI COGNITIVE SUBSYSTEM OFFLINE.' : 'Error: AI cognitive subsystem offline.'
+                  )}
+                </p>
+                <p className="text-xs text-dim/80 italic mt-1 font-mono">
+                  {isArcadeTheme ? '>> (AI REPORT UNAVAILABLE — ALL OTHER DATA IS LIVE FROM NASA)' : '(AI report unavailable — all other data is live from NASA)'}
+                </p>
+              </div>
               {reportNote !== 'TIMEOUT' && (
                 <p className="text-xs text-dim">
                   SET <code className="font-mono text-signal">GEMINI_API_KEY</code> ENVDETAILS TO CONNECT.
@@ -319,7 +406,7 @@ Data sourced from NASA JPL.`;
                   onClick={() => fetchReport(coords)}
                   className="bg-void border border-edge hover:border-signal text-ink px-2.5 py-1 text-[11px] font-mono transition-colors cursor-pointer select-none"
                 >
-                  {isArcadeTheme ? '[ RETRY DIAGNOSTIC ]' : 'Retry Diagnostic'}
+                  {isArcadeTheme ? '[R] RETRY — DATA RELAY UNSTABLE' : 'Retry Diagnostic'}
                 </button>
               </div>
             </div>
@@ -332,13 +419,20 @@ Data sourced from NASA JPL.`;
             {isArcadeTheme ? 'LOCAL SKY RADAR CORRELATOR' : 'Local Sky Radar Correlator'}
           </p>
           {!coords ? (
-            <button
-              onClick={handleScanSky}
-              disabled={locating}
-              className="w-full bg-void border border-edge hover:border-signal text-ink px-3 py-2 text-xs font-mono transition-colors cursor-pointer disabled:opacity-50 select-none"
-            >
-              {locating ? 'GPS LOCK ACQUIRING...' : (isArcadeTheme ? '[ ACTIVATE SKY SCANNER ]' : 'Scan Local Sky (Request GPS)')}
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={handleScanSky}
+                disabled={locating}
+                className="w-full bg-void border border-edge hover:border-signal text-ink px-3 py-2 text-xs font-mono transition-colors cursor-pointer disabled:opacity-50 select-none"
+              >
+                {locating ? 'GPS LOCK ACQUIRING...' : (isArcadeTheme ? '[ ACTIVATE SKY SCANNER ]' : 'Scan Local Sky (Request GPS)')}
+              </button>
+              <p className="text-[10px] text-dim/80 font-mono leading-normal">
+                {isArcadeTheme 
+                  ? '>> STORES OBSERVER POSITION TO TAILOR AI VISIBILITY ANGLE CALCULATIONS.' 
+                  : 'Locks your location to customize the AI report with local sky viewing angles.'}
+              </p>
+            </div>
           ) : (
             <div className="space-y-2 font-mono text-sm text-dim">
               <div className="flex justify-between border-b border-edge/20 pb-1">
@@ -348,7 +442,9 @@ Data sourced from NASA JPL.`;
                 </span>
               </div>
               <p className="text-xs text-ink/80 leading-relaxed font-mono">
-                {isArcadeTheme ? '>> SYSTEM CORRELATED LOCAL SKY COORDINATES APPLIED TO TELEMETRY.' : 'System-correlated local sky coordinates applied to telemetry.'}
+                {isArcadeTheme 
+                  ? '>> GPS APPLIED. AI DIAGNOSTIC REPORT MODIFIED TO ESTIMATE VISIBILITY PATH FROM YOUR OBSERVER POSITION.' 
+                  : 'GPS applied. The AI Diagnostic report has been updated to estimate asteroid visibility from your current position.'}
               </p>
             </div>
           )}
